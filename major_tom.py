@@ -8,11 +8,22 @@ import websockets
 logger = logging.getLogger(__name__)
 
 
+class MajorTomCommand(object):
+    def __init__(self, json_command):
+        self.json_command = json_command
+        self.type = json_command["type"]
+        self.id = json_command["id"]
+        self.path = json_command["path"]
+        self.subsystem = self.path.split('.')[-1]
+        self.fields = {field["name"]: field["value"] for field in json_command["fields"]}
+
+
 class MajorTom:
     def __init__(self, config):
         self.config = config
         self.websocket = None
         self.queued_payloads = []
+        self.satellite = None
 
     async def connect(self):
         if re.match(r"^wss://", self.config["major-tom-endpoint"], re.IGNORECASE):
@@ -43,7 +54,7 @@ class MajorTom:
                 logger.warning("Connection error encountered, retrying in 5 seconds ({})".format(e))
                 await asyncio.sleep(5)
             except Exception as e:
-                logger.error("Unhandled {} in `with_retries`".format(e.__class__.__name__))
+                logger.error("Unhandled {} in `connect_with_retries`".format(e.__class__.__name__))
                 raise e
 
     # ActionCable channel subscribe
@@ -53,30 +64,44 @@ class MajorTom:
             "identifier": json.dumps({"channel": "GatewayChannel"})
         }))
 
-    async def handle_message(self, message):
-        data = json.loads(message)
+    async def handle_message(self, action_cable_message):
+        action_cable_data = json.loads(action_cable_message)
 
-        if "type" in data and data["type"] in ['ping', 'confirm_subscription', 'welcome']:
+        if "type" in action_cable_data and action_cable_data["type"] in ['ping', 'confirm_subscription', 'welcome']:
             return
 
-        logger.debug(data)
+        logger.debug(action_cable_data)
 
-        if "message" not in data:
-            logger.warning("Unknown message received from Major Tom: {}".format(message))
-        elif data["message"]["type"] == "command":
-            logger.warning("Commands not implemented")
-        elif data["message"]["type"] == "script":
+        if "message" not in action_cable_data:
+            logger.warning("Unknown message received from Major Tom: {}".format(action_cable_message))
+            return
+
+        # Our API content is inside ActionCable
+        message = action_cable_data["message"]
+        message_type = message["type"]
+        if message_type == "command":
+            command = MajorTomCommand(message["command"])
+            command_result = await self.satellite.handle_command(command)
+            if command_result.sent:
+                await self.transmit_command_payload(command.id, command_result.payload)
+            else:
+                await self.transmit_command_error(command.id, command_result.errors)
+        elif message_type == "script":
             logger.warning("Scripts not implemented")
-        elif data["message"]["type"] == "error":
-            logger.warning("Error from backend: {}".format(data["error"]))
+        elif message_type == "error":
+            logger.warning("Error from backend: {}".format(message["error"]))
         else:
-            logger.warning(
-                "Unknown message type {} received from Major Tom: {}".format(data["message"]["type"], message))
+            logger.warning("Unknown message type {} received from Major Tom: {}".format(message_type, message))
+
+    async def empty_queue(self):
+        while len(self.queued_payloads) > 0 and self.websocket:
+            payload = self.queued_payloads.pop(0)
+            await self.transmit(payload)
 
     # ActionCable wrapping
     async def transmit(self, payload):
-        logger.debug("To Major Tom: {}".format(payload))
         if self.websocket:
+            logger.debug("To Major Tom: {}".format(payload))
             await self.websocket.send(json.dumps({
                 "command": "message",
                 "identifier": json.dumps({"channel": "GatewayChannel"}),
@@ -85,11 +110,6 @@ class MajorTom:
         else:
             # Switch to https://docs.python.org/3/library/asyncio-queue.html
             self.queued_payloads.append(payload)
-
-    async def empty_queue(self):
-        while len(self.queued_payloads) > 0 and self.websocket:
-            payload = self.queued_payloads.pop(0)
-            await self.transmit(payload)
 
     async def transmit_metrics(self, metrics):
         await self.transmit({
@@ -107,7 +127,17 @@ class MajorTom:
             ]
         })
 
-    async def command_error(self, command_id, errors):
+    async def transmit_command_payload(self, command_id, payload):
+        await self.transmit({
+            "type": "command_status",
+            "command_status": {
+                "source": "adapter",
+                "id": command_id,
+                "payload": payload
+            }
+        })
+
+    async def transmit_command_error(self, command_id, errors):
         await self.transmit({
             "type": "command_status",
             "command_status": {
@@ -117,7 +147,7 @@ class MajorTom:
             }
         })
 
-    async def script_error(self, script_id, errors):
+    async def transmit_script_error(self, script_id, errors):
         await self.transmit({
             "type": "script_status",
             "script_status": {

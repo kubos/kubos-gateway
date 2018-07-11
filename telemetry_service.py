@@ -1,17 +1,14 @@
-import asyncio
-import json
 import logging
-import time
 
+from command_result import CommandResult
 from sat_service import SatService
 
 logger = logging.getLogger(__name__)
 
 
 class TelemetryService(SatService):
-    def __init__(self, host, port, path_prefix):
-        super().__init__('telemetry', host, port)
-        self.path_prefix = path_prefix
+    def __init__(self, port):
+        super().__init__('telemetry', port)
 
     async def message_received(self, message):
         logger.info("Received: {}".format(message))
@@ -20,18 +17,29 @@ class TelemetryService(SatService):
         #   {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': -1975424672, 'value': '0.15'},
         #   ...
 
-        await self.major_tom.transmit_metrics([
-            {
-                # Major Tom expects path to look like 'team.mission.system.subsystem.metric'
-                "path": '.'.join([self.path_prefix, telemetry['subsystem'], telemetry['parameter']]),
+        await self.satellite.send_metrics_to_major_tom(message['msg']['telemetry'])
 
-                "value": telemetry['value'],
+    async def handle_command(self, command):
+        command_result = CommandResult(command)
 
-                # Timestamp is expected to be millisecond unix epoch
-                # "timestamp": telemetry['timestamp']
-                "timestamp": int(time.time()) * 1000
-            } for telemetry in message['msg']['telemetry']
-        ])
+        if command.type == 'telemetry':
+            command_result.validate_range("limit", 0, 10, int, "Limit must be between 0 and 10")
+            command_result.validate_presence("subsystem", "Subsystem is required")  # FIXME
+            if command_result.valid():
+                query = """
+                  { telemetry(limit: %i, subsystem: "%s") { timestamp, subsystem, parameter, value } }
+                """ % (command.fields["limit"], command.fields["subsystem"])
+                command_result.payload = query.strip()
+                logger.info('Sent: {}'.format(command_result.payload))
+                self.transport.sendto(command_result.payload.encode())
+                command_result.sent = True
+        else:
+            command_result.errors.append(f"Unknown command {command.type}")
+
+        return command_result
+
+    def match(self, command):
+        return command.type == "telemetry"
 
     async def request(self):
         query = """

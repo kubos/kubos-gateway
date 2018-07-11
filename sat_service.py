@@ -27,20 +27,22 @@ class SatConnectionProtocol:
 
 
 class SatService:
-    def __init__(self, service_name, host, port):
-        self.services = {}
-        self.service_name = service_name
-        self.host = host
+    def __init__(self, name, port):
+        self.name = name
         self.port = port
         self.transport = None
         self.protocol = None
-        self.major_tom = None
+        self.satellite = None
 
     async def connect(self):
-        logger.info(f'Connecting to the {self.service_name} sat service')
+        logger.info(f'Connecting to the {self.name} sat service')
         loop = asyncio.get_event_loop()
         self.transport, self.protocol = await loop.create_datagram_endpoint(lambda: SatConnectionProtocol(loop, self),
-                                                                            remote_addr=(self.host, self.port))
+                                                                            remote_addr=(self.satellite.host, self.port))
 
     async def message_received(self, message):
         logger.warning("Unhandled message_received!")
+
+    # No special match needed-- the default behavior will trigger and route by subsystem.
+    def match(self, command):
+        return False
