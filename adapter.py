@@ -6,6 +6,8 @@ from major_tom import MajorTom
 from sat import Sat
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.getLogger('asyncio').setLevel(logging.WARNING)
+logging.getLogger('websockets.protocol').setLevel(logging.INFO)
 
 with open('config/config.local.json', 'r') as configfile:
     config = json.loads(configfile.read())
