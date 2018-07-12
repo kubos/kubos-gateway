@@ -11,12 +11,13 @@ class Satellite:
         self.path_prefix_to_subsystem = path_prefix_to_subsystem
         self.registry = {}
 
-    def register_service(self, service):
-        self.registry[service.name] = service
-        service.satellite = self
+    def register_service(self, *service):
+        for service in service:
+            self.registry[service.name] = service
+            service.satellite = self
 
     async def send_metrics_to_major_tom(self, metrics):
-        # {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': -1975424672, 'value': '0.15'}
+        # {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196211.0, 'value': '0.15'}
         await self.major_tom.transmit_metrics([
             {
                 # Major Tom expects path to look like 'team.mission.system.subsystem.metric'
@@ -25,11 +26,14 @@ class Satellite:
                 "value": metric['value'],
 
                 # Timestamp is expected to be millisecond unix epoch
-                # "timestamp": metric['timestamp']
+                # "timestamp": int(metric['timestamp'])
                 # FIXME
                 "timestamp": int(time.time()) * 1000
             } for metric in metrics
         ])
+
+    async def send_command_ack_to_major_tom(self, command_id, return_code, output=None, errors=None):
+        await self.major_tom.transmit_command_ack(command_id, return_code, output, errors)
 
     async def handle_command(self, command):
         routes = [service for service in self.registry.values() if service.match(command)]

@@ -20,5 +20,9 @@ class CommandResult:
                 self.command.fields[field]) == 0:
             self.errors.append(error)
 
+    def validate_boolean(self, field, error):
+        if field not in self.command.fields or not isinstance(self.command.fields[field], bool):
+            self.errors.append(error)
+
     def valid(self):
         return len(self.errors) == 0

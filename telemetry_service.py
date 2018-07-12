@@ -14,7 +14,7 @@ class TelemetryService(SatService):
         logger.info("Received: {}".format(message))
 
         # {'errs': '', 'msg': {'telemetry': [
-        #   {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': -1975424672, 'value': '0.15'},
+        #   {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196211.0, 'value': '0.15'},
         #   ...
 
         await self.satellite.send_metrics_to_major_tom(message['msg']['telemetry'])

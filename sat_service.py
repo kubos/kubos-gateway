@@ -18,6 +18,7 @@ class SatConnectionProtocol:
         asyncio.ensure_future(self.service.message_received(json.loads(data.decode())))
         # self.transport.close()
 
+    # TODO: "[Errno 61] Connection refused" never gets fed back to Major Tom.
     def error_received(self, exc):
         logger.info('Error received: {}'.format(exc))
 

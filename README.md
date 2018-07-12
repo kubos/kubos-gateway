@@ -2,16 +2,7 @@
 
 ## Plan
 
-1. Understand asyncio
-1. Get telemetry data from UDP.
-1. Format telemetry for Major Tom.
-1. Send telemetry to Major Tom.
-1. Get commands flowing from Major Tom.
-1. Send command to sat.
-1. Get command status.
-1. Send pretty format command to Major Tom.
-1. Send validate commands.
-
+1. Fix timestamps in KubOS
 
 
 First time:

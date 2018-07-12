@@ -1,4 +1,4 @@
 virtualenv
 .idea
-config/config.local.json
+config/config.local*
 __pycache__

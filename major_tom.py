@@ -137,6 +137,18 @@ class MajorTom:
             }
         })
 
+    async def transmit_command_ack(self, command_id, return_code, output, errors):
+        await self.transmit({
+            "type": "command_status",
+            "command_status": {
+                "source": "remote",
+                "id": command_id,
+                "errors": errors,
+                "code": return_code,
+                "output": output
+            }
+        })
+
     async def transmit_command_error(self, command_id, errors):
         await self.transmit({
             "type": "command_status",
