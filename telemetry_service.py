@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from command_result import CommandResult
@@ -40,6 +41,11 @@ class TelemetryService(SatService):
 
     def match(self, command):
         return command.type == "telemetry"
+
+    async def start_request(self):
+        while True:
+            await self.request()
+            await asyncio.sleep(10)
 
     async def request(self):
         query = """

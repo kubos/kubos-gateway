@@ -31,14 +31,16 @@ def main():
     # Connect to Major Tom
     asyncio.ensure_future(major_tom.connect_with_retries())
 
+    telemetry_service = TelemetryService(8005)
+
     # Setup services
     satellite.register_service(
-        TelemetryService(8005),
+        telemetry_service,
         ExampleRustService(8080)
     )
 
     loop.run_until_complete(satellite.start_services())
-    # asyncio.ensure_future(telemetry_service.request())
+    asyncio.ensure_future(telemetry_service.start_request())
 
     loop.run_forever()
     loop.close()
