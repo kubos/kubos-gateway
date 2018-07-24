@@ -5,8 +5,8 @@ import ssl
 import logging
 import websockets
 
-from command import Command
-from command_result import CommandResult
+from kubos_adapter.command import Command
+from kubos_adapter.command_result import CommandResult
 
 logger = logging.getLogger(__name__)
 

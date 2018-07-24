@@ -2,5 +2,6 @@
   "agent-token": "YOUR-AGENT-TOKEN",
   "major-tom-endpoint": "wss://app.majortom.cloud/cable",
   "major-tom-origin": "https://app.majortom.cloud",
+  "path-prefix-to-subsystem": "kubos.hamilton.hamilton-1",
   "sat-ip": "xxx.xxx.xxx.xxx"
 }
