@@ -1,7 +1,8 @@
 class CommandResult:
     def __init__(self, command, error=None):
-        self.command = command
         self.sent = False
+        self.command = command
+        self.matched = False
         self.errors = []
         if error:
             self.errors.append(error)
@@ -26,3 +27,9 @@ class CommandResult:
 
     def valid(self):
         return len(self.errors) == 0
+
+    def mark_as_matched(self):
+        self.matched = True
+
+    def mark_as_sent(self):
+        self.sent = True

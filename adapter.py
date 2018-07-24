@@ -5,7 +5,7 @@ import logging
 from major_tom import MajorTom
 from satellite import Satellite
 from telemetry_service import TelemetryService
-from example_rust_service import ExampleRustService
+from example_service import ExampleService
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.getLogger('asyncio').setLevel(logging.WARNING)
@@ -33,14 +33,14 @@ def main():
 
     telemetry_service = TelemetryService(8005)
 
-    # Setup services
+    # Setup services. Note that registry order matters. Put services with more specific `match` methods first.
     satellite.register_service(
         telemetry_service,
-        ExampleRustService(8080)
+        ExampleService(8080)
     )
 
     loop.run_until_complete(satellite.start_services())
-    asyncio.ensure_future(telemetry_service.start_request())
+    asyncio.ensure_future(telemetry_service.start_heartbeat())
 
     loop.run_forever()
     loop.close()

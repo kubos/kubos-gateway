@@ -1,1 +1,1 @@
-git+git://github.com/aaugustin/websockets@master#egg=websocktes
+git+git://github.com/aaugustin/websockets@master#egg=websockets

@@ -5,17 +5,10 @@ import ssl
 import logging
 import websockets
 
+from command import Command
+from command_result import CommandResult
+
 logger = logging.getLogger(__name__)
-
-
-class MajorTomCommand(object):
-    def __init__(self, json_command):
-        self.json_command = json_command
-        self.type = json_command["type"]
-        self.id = json_command["id"]
-        self.path = json_command["path"]
-        self.subsystem = self.path.split('.')[-1]
-        self.fields = {field["name"]: field["value"] for field in json_command["fields"]}
 
 
 class MajorTom:
@@ -80,16 +73,16 @@ class MajorTom:
         message = action_cable_data["message"]
         message_type = message["type"]
         if message_type == "command":
-            command = MajorTomCommand(message["command"])
-            command_result = await self.satellite.handle_command(command)
+            command = Command(message["command"])
+            command_result: CommandResult = await self.satellite.handle_command(command)
             if command_result.sent:
                 await self.transmit_command_payload(command.id, command_result.payload)
             else:
                 await self.transmit_command_error(command.id, command_result.errors)
         elif message_type == "script":
-            logger.warning("Scripts not implemented")
+            logger.error("Scripts are not implemented.")
         elif message_type == "error":
-            logger.warning("Error from backend: {}".format(message["error"]))
+            logger.error("Error from backend: {}".format(message["error"]))
         else:
             logger.warning("Unknown message type {} received from Major Tom: {}".format(message_type, message))
 

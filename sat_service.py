@@ -2,6 +2,9 @@ import asyncio
 import json
 import logging
 
+from command_result import CommandResult
+from major_tom import Command
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +47,22 @@ class SatService:
     async def message_received(self, message):
         logger.warning("Unhandled message_received!")
 
-    # No special match needed-- the default behavior will trigger and route by subsystem.
+    def validate_command(self, command: Command) -> CommandResult:
+        command_result = CommandResult(command)
+
+        # Handle commands supported by all services.
+        if command.type == 'raw_telemetry_query':
+            command_result.mark_as_matched()
+            command_result.validate_presence("query", "Query is required")
+            if command_result.valid():
+                command_result.payload = command.fields["query"].strip()
+        elif command.type == 'raw_mutation':
+            command_result.mark_as_matched()
+            command_result.validate_presence("mutation", "Mutation is required")
+            if command_result.valid():
+                command_result.payload = command.fields["mutation"].strip()
+
+        return command_result
+
     def match(self, command):
-        return False
+        return command.subsystem == self.name

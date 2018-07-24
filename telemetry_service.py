@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from command_result import CommandResult
+from major_tom import Command
 from sat_service import SatService
 
 logger = logging.getLogger(__name__)
@@ -18,12 +19,13 @@ class TelemetryService(SatService):
         #   {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196211.0, 'value': '0.15'},
         #   ...
 
-        await self.satellite.send_metrics_to_major_tom(message['msg']['telemetry'])
+        await self.satellite.send_metrics_to_mt(message['msg']['telemetry'])
 
-    async def handle_command(self, command):
-        command_result = CommandResult(command)
+    def validate_command(self, command: Command) -> CommandResult:
+        command_result = super().validate_command(command)
 
         if command.type == 'telemetry':
+            command_result.mark_as_matched()
             command_result.validate_range("limit", 0, 10, int, "Limit must be between 0 and 10")
             command_result.validate_presence("subsystem", "Subsystem is required")  # FIXME
             if command_result.valid():
@@ -31,25 +33,16 @@ class TelemetryService(SatService):
                   { telemetry(limit: %i, subsystem: "%s") { timestamp, subsystem, parameter, value } }
                 """ % (command.fields["limit"], command.fields["subsystem"])
                 command_result.payload = query.strip()
-                logger.info('Sent: {}'.format(command_result.payload))
-                self.transport.sendto(command_result.payload.encode())
-                command_result.sent = True
-        else:
-            command_result.errors.append(f"Unknown command {command.type}")
 
         return command_result
 
     def match(self, command):
-        return command.type == "telemetry"
+        return command.type == "telemetry"  # Matches all subsystems
 
-    async def start_request(self):
+    async def start_heartbeat(self):
         while True:
-            await self.request()
+            query = """
+                      { telemetry { timestamp, subsystem, parameter, value } }
+                    """
+            # self.transport.sendto(query.encode())
             await asyncio.sleep(10)
-
-    async def request(self):
-        query = """
-          { telemetry { timestamp, subsystem, parameter, value } }
-        """
-        logger.info('Sent: {}'.format(query))
-        self.transport.sendto(query.encode())
