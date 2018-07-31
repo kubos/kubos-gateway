@@ -19,14 +19,16 @@ pip install git+git://github.com/aaugustin/websockets.git
 1. Copy `config.json` to `config.local.json` and edit it.
 
 
+Every time:
+
+```bash
+source virtualenv/bin/activate
+python run.py
+```
+
 Deactivate virtualenv:
 ```bash
 deactivate
-```
-
-Every time:
-```bash
-source virtualenv/bin/activate
 ```
 
 ## Building and distributing

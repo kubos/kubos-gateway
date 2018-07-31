@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 import ssl
 import logging
@@ -21,6 +22,16 @@ class MajorTom:
     async def connect(self):
         if re.match(r"^wss://", self.config["major-tom-endpoint"], re.IGNORECASE):
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+            if "ssl-verify" not in self.config or self.config["ssl-verify"] is True:
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+                ssl_context.check_hostname = True
+                # Should probably fetch from https://curl.haxx.se/docs/caextract.html
+                ssl_context.load_verify_locations(self.config["ssl-ca-bundle"])
+            else:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+
         else:
             ssl_context = None
 

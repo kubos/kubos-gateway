@@ -3,5 +3,7 @@
   "major-tom-endpoint": "wss://app.majortom.cloud/cable",
   "major-tom-origin": "https://app.majortom.cloud",
   "path-prefix-to-subsystem": "kubos.hamilton.hamilton-1",
+  "ssl-verify": true,
+  "ssl-ca-bundle": "/path/to/a/valid/cabundle.pem (perhaps from https://curl.haxx.se/docs/caextract.html or use /usr/local/etc/openssl/cert.pem if you have it)",
   "sat-ip": "xxx.xxx.xxx.xxx"
 }
