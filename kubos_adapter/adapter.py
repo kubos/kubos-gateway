@@ -5,7 +5,7 @@ from kubos_adapter.major_tom import MajorTom
 from kubos_adapter.satellite import Satellite
 from kubos_adapter.telemetry_service import TelemetryService
 from kubos_adapter.example_service import ExampleService
-
+from kubos_adapter.application_service import ApplicationService
 
 class Adapter(object):
     @staticmethod
@@ -30,7 +30,8 @@ class Adapter(object):
         # Setup services. Note that registry order matters. Put services with more specific `match` methods first.
         satellite.register_service(
             telemetry_service,
-            ExampleService(8080)
+            ExampleService(8081),
+            ApplicationService(8080)
         )
 
         loop.run_until_complete(satellite.start_services())
