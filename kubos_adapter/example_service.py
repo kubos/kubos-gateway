@@ -16,27 +16,12 @@ class ExampleService(SatService):
     async def message_received(self, message):
         logger.info("Received: {}".format(message))
 
-        # {'errs': '', 'msg': {'setPower': {'power': True}}}
-        if isinstance(message, dict) \
-                and 'errs' in message \
-                and len(message['errs']) > 0:
-            await self.satellite.send_ack_to_mt(self.last_command_id,
-                                                return_code=1,
-                                                errors=[error["message"] for error in message['errs']])
-
-        # [{'message': 'Unknown field "ping" on type "Query"', 'locations': [{'line': 1, 'column': 2}]}]
-        elif isinstance(message, list) \
-                and len(message) > 0 \
-                and isinstance(message[0], dict) \
-                and 'locations' in message[0]:
-            await self.satellite.send_ack_to_mt(self.last_command_id,
-                                                return_code=1,
-                                                errors=[json.dumps(error) for error in message])
-
-        else:
+        if message.get('msg').get('setPower') or message.get('msg').get('calibrateThermometer'):
             await self.satellite.send_ack_to_mt(self.last_command_id,
                                                 return_code=0,
                                                 output=ExampleService.pretty_message(message))
+        else:
+            super().message_received(message)
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = super().validate_command(command)

@@ -19,7 +19,10 @@ class TelemetryService(SatService):
         #   {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196211.0, 'value': '0.15'},
         #   ...
 
-        await self.satellite.send_metrics_to_mt(message['msg']['telemetry'])
+        if message.get('msg').get('telemetry'):
+            await self.satellite.send_metrics_to_mt(message['msg']['telemetry'])
+        else:
+            super().message_received(message)
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = super().validate_command(command)

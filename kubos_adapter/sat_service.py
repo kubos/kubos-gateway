@@ -43,9 +43,32 @@ class SatService:
         loop = asyncio.get_event_loop()
         self.transport, self.protocol = await loop.create_datagram_endpoint(lambda: SatConnectionProtocol(loop, self),
                                                                             remote_addr=(self.satellite.host, self.port))
+        logger.info(f'Connected to {self.name} sat service')
 
     async def message_received(self, message):
-        logger.warning("Unhandled message_received!")
+        logger.info("Received: {}".format(message))
+
+        # {'errs': '', 'msg': { errs: '..' }}
+        if isinstance(message, dict) \
+                and 'errs' in message \
+                and len(message['errs']) > 0:
+            await self.satellite.send_ack_to_mt(self.last_command_id,
+                                                return_code=1,
+                                                errors=[error["message"] for error in message['errs']])
+
+        # [{'message': 'Unknown field "ping" on type "Query"', 'locations': [{'line': 1, 'column': 2}]}]
+        elif isinstance(message, list) \
+                and len(message) > 0 \
+                and isinstance(message[0], dict) \
+                and 'locations' in message[0]:
+            await self.satellite.send_ack_to_mt(self.last_command_id,
+                                                return_code=1,
+                                                errors=[json.dumps(error) for error in message])
+
+        else:
+            await self.satellite.send_ack_to_mt(self.last_command_id,
+                                                return_code=0,
+                                                output=json.dumps(message))
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = CommandResult(command)
