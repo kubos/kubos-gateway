@@ -30,8 +30,8 @@ class Adapter(object):
         # Setup services. Note that registry order matters. Put services with more specific `match` methods first.
         satellite.register_service(
             telemetry_service,
-            ExampleService(8081),
-            ApplicationService(8080)
+            ExampleService(8080),
+            ApplicationService(8000)
         )
 
         loop.run_until_complete(satellite.start_services())
