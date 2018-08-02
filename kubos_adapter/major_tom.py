@@ -44,6 +44,7 @@ class MajorTom:
                                              ssl=ssl_context)
         logger.info("Connected to Major Tom")
         self.websocket = websocket
+        await asyncio.sleep(1)
         await self.subscribe()
         await self.empty_queue()
         async for message in websocket:

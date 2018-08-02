@@ -19,7 +19,7 @@ class Satellite:
             service.satellite = self
 
     async def send_metrics_to_mt(self, metrics):
-        # {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196211.0, 'value': '0.15'}
+        # {'parameter': 'voltage', 'subsystem': 'eps', 'timestamp': 1531412196.0, 'value': '0.15'}
         await self.major_tom.transmit_metrics([
             {
                 # Major Tom expects path to look like 'team.mission.system.subsystem.metric'
