@@ -5,4 +5,5 @@ class Command(object):
         self.id = json_command["id"]
         self.path = json_command["path"]
         self.subsystem = self.path.split('.')[-1]
-        self.fields = {field["name"]: field["value"] for field in json_command["fields"]}
+        self.fields = {
+            field["name"]: field["value"] for field in json_command["fields"]}

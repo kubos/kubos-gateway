@@ -18,7 +18,8 @@ class SatConnectionProtocol:
         self.transport = transport
 
     def datagram_received(self, data, addr):
-        asyncio.ensure_future(self.service.message_received(json.loads(data.decode())))
+        asyncio.ensure_future(
+            self.service.message_received(json.loads(data.decode())))
         # self.transport.close()
 
     # TODO: "[Errno 61] Connection refused" never gets fed back to Major Tom.
@@ -41,8 +42,9 @@ class SatService:
     async def connect(self):
         logger.info(f'Connecting to the {self.name} sat service')
         loop = asyncio.get_event_loop()
-        self.transport, self.protocol = await loop.create_datagram_endpoint(lambda: SatConnectionProtocol(loop, self),
-                                                                            remote_addr=(self.satellite.host, self.port))
+        self.transport, self.protocol = await loop.create_datagram_endpoint(
+            lambda: SatConnectionProtocol(loop, self),
+            remote_addr=(self.satellite.host, self.port))
         logger.info(f'Connected to {self.name} sat service')
 
     async def message_received(self, message):
@@ -52,18 +54,21 @@ class SatService:
         if isinstance(message, dict) \
                 and 'errs' in message \
                 and len(message['errs']) > 0:
-            await self.satellite.send_ack_to_mt(self.last_command_id,
-                                                return_code=1,
-                                                errors=[error["message"] for error in message['errs']])
+            await self.satellite.send_ack_to_mt(
+                self.last_command_id,
+                return_code=1,
+                errors=[error["message"] for error in message['errs']])
 
-        # [{'message': 'Unknown field "ping" on type "Query"', 'locations': [{'line': 1, 'column': 2}]}]
+        # [{'message': 'Unknown field "ping" on type "Query"',
+        #   'locations': [{'line': 1, 'column': 2}]}]
         elif isinstance(message, list) \
                 and len(message) > 0 \
                 and isinstance(message[0], dict) \
                 and 'locations' in message[0]:
-            await self.satellite.send_ack_to_mt(self.last_command_id,
-                                                return_code=1,
-                                                errors=[json.dumps(error) for error in message])
+            await self.satellite.send_ack_to_mt(
+                self.last_command_id,
+                return_code=1,
+                errors=[json.dumps(error) for error in message])
 
         else:
             await self.satellite.send_ack_to_mt(self.last_command_id,
@@ -81,7 +86,8 @@ class SatService:
                 command_result.payload = command.fields["query"].strip()
         elif command.type == 'raw_mutation':
             command_result.mark_as_matched()
-            command_result.validate_presence("mutation", "Mutation is required")
+            command_result.validate_presence(
+                "mutation", "Mutation is required")
             if command_result.valid():
                 command_result.payload = command.fields["mutation"].strip()
 
