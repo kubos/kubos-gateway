@@ -37,7 +37,7 @@ class MajorTom:
 
         logger.info("Connecting to Major Tom")
         websocket = await websockets.connect(self.config["major-tom-endpoint"],
-                                             origin=self.config["major-tom-origin"],
+                                             origin=self.config.get("major-tom-origin", None),
                                              extra_headers={
                                                  "X-Agent-Token": self.config["agent-token"]
                                              },
@@ -45,7 +45,6 @@ class MajorTom:
         logger.info("Connected to Major Tom")
         self.websocket = websocket
         await asyncio.sleep(1)
-        await self.subscribe()
         await self.empty_queue()
         async for message in websocket:
             await self.handle_message(message)
@@ -62,27 +61,8 @@ class MajorTom:
                 logger.error("Unhandled {} in `connect_with_retries`".format(e.__class__.__name__))
                 raise e
 
-    # ActionCable channel subscribe
-    async def subscribe(self):
-        await self.websocket.send(json.dumps({
-            "command": "subscribe",
-            "identifier": json.dumps({"channel": "GatewayChannel"})
-        }))
-
-    async def handle_message(self, action_cable_message):
-        action_cable_data = json.loads(action_cable_message)
-
-        if "type" in action_cable_data and action_cable_data["type"] in ['ping', 'confirm_subscription', 'welcome']:
-            return
-
-        logger.debug(action_cable_data)
-
-        if "message" not in action_cable_data:
-            logger.warning("Unknown message received from Major Tom: {}".format(action_cable_message))
-            return
-
-        # Our API content is inside ActionCable
-        message = action_cable_data["message"]
+    async def handle_message(self, json_data):
+        message = json.loads(json_data)
         message_type = message["type"]
         if message_type == "command":
             command = Command(message["command"])
@@ -95,6 +75,8 @@ class MajorTom:
             logger.error("Scripts are not implemented.")
         elif message_type == "error":
             logger.error("Error from backend: {}".format(message["error"]))
+        elif message_type == "hello":
+            logger.info("Major Tom says hello: {}".format(message))
         else:
             logger.warning("Unknown message type {} received from Major Tom: {}".format(message_type, message))
 
@@ -103,15 +85,10 @@ class MajorTom:
             payload = self.queued_payloads.pop(0)
             await self.transmit(payload)
 
-    # ActionCable wrapping
     async def transmit(self, payload):
         if self.websocket:
             logger.debug("To Major Tom: {}".format(payload))
-            await self.websocket.send(json.dumps({
-                "command": "message",
-                "identifier": json.dumps({"channel": "GatewayChannel"}),
-                "data": json.dumps(payload)
-            }))
+            await self.websocket.send(json.dumps(payload))
         else:
             # Switch to https://docs.python.org/3/library/asyncio-queue.html
             self.queued_payloads.append(payload)
