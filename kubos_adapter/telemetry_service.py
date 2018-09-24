@@ -50,9 +50,7 @@ class TelemetryService(SatService):
 
     async def start_heartbeat(self):
         while True:
-            delta = datetime.utcnow() - datetime(1970, 1, 1)
-            now_in_utc_milliseconds = int(
-                delta.microseconds / 1000 + delta.seconds * 1000 + delta.days * 24 * 3600 * 1000)
+            now_in_utc_milliseconds = int(round(time.time() * 1000))
             query = """
                     { telemetry(timestampGe:%d) {
                         timestamp, subsystem, parameter, value }
