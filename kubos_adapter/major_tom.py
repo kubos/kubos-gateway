@@ -64,6 +64,7 @@ class MajorTom:
     async def handle_message(self, json_data):
         message = json.loads(json_data)
         message_type = message["type"]
+        logger.info("From Major Tom: {}".format(message))
         if message_type == "command":
             command = Command(message["command"])
             command_result: CommandResult = await self.satellite.handle_command(command)
@@ -71,8 +72,6 @@ class MajorTom:
                 await self.transmit_command_payload(command.id, command_result.payload)
             else:
                 await self.transmit_command_error(command.id, command_result.errors)
-        elif message_type == "script":
-            logger.error("Scripts are not implemented.")
         elif message_type == "error":
             logger.error("Error from backend: {}".format(message["error"]))
         elif message_type == "hello":
