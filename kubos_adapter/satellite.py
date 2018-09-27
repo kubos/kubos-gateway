@@ -54,10 +54,7 @@ class Satellite:
                 "value": metric['value'],
 
                 # Timestamp is expected to be millisecond unix epoch
-                # "timestamp": int(metric['timestamp'])
-                # "timestamp": int(time.time()) * 1000
-                # FIXME, timestamps from the OS don't have enough resolution
-                "timestamp": int(metric['timestamp'])*1000
+                "timestamp": int(metric['timestamp'])
             } for metric in metrics
         ])
 
