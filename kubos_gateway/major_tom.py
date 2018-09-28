@@ -6,8 +6,8 @@ import ssl
 import logging
 import websockets
 
-from kubos_adapter.command import Command
-from kubos_adapter.command_result import CommandResult
+from kubos_gateway.command import Command
+from kubos_gateway.command_result import CommandResult
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class MajorTom:
         await self.transmit({
             "type": "command_status",
             "command_status": {
-                "source": "adapter",
+                "source": "gateway",
                 "id": command_id,
                 "payload": payload
             }
@@ -134,7 +134,7 @@ class MajorTom:
         await self.transmit({
             "type": "command_status",
             "command_status": {
-                "source": "adapter",
+                "source": "gateway",
                 "id": command_id,
                 "errors": errors
             }
@@ -144,7 +144,7 @@ class MajorTom:
         await self.transmit({
             "type": "script_status",
             "script_status": {
-                "source": "adapter",
+                "source": "gateway",
                 "id": script_id,
                 "errors": errors
             }

@@ -2,8 +2,8 @@ import asyncio
 import json
 import logging
 
-from kubos_adapter.command_result import CommandResult
-from kubos_adapter.major_tom import Command
+from kubos_gateway.command_result import CommandResult
+from kubos_gateway.major_tom import Command
 
 logger = logging.getLogger(__name__)
 

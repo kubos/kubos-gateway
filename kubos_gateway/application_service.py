@@ -1,9 +1,9 @@
 import logging
 import json
 
-from kubos_adapter.command_result import CommandResult
-from kubos_adapter.major_tom import Command
-from kubos_adapter.sat_service import SatService
+from kubos_gateway.command_result import CommandResult
+from kubos_gateway.major_tom import Command
+from kubos_gateway.sat_service import SatService
 
 logger = logging.getLogger(__name__)
 

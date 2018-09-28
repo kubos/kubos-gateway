@@ -1,15 +1,15 @@
 import asyncio
 import logging
 
-from kubos_adapter.major_tom import MajorTom
-from kubos_adapter.satellite import Satellite
-from kubos_adapter.telemetry_service import TelemetryService
-from kubos_adapter.example_service import ExampleService
-from kubos_adapter.application_service import ApplicationService
-from kubos_adapter.pumpkin_mcu_service import PumpkinMCUService
+from kubos_gateway.major_tom import MajorTom
+from kubos_gateway.satellite import Satellite
+from kubos_gateway.telemetry_service import TelemetryService
+from kubos_gateway.example_service import ExampleService
+from kubos_gateway.application_service import ApplicationService
+from kubos_gateway.pumpkin_mcu_service import PumpkinMCUService
 
 
-class Adapter(object):
+class Gateway(object):
     @staticmethod
     def run_forever(config):
         logging.info("Starting up!")
@@ -41,6 +41,13 @@ class Adapter(object):
         )
 
         loop.run_until_complete(satellite.start_services())
+
+        from random import randint 
+        import time 
+        loop.run_until_complete(major_tom.transmit({
+            'type': 'measurements',
+            'measurements': [{'path': 'kubos.mission0.satellite14.pim.metric' + str(randint(0, 20)), 'value': randint(0, 100), 'timestamp': int((time.time() - 120) * 1000) + j} for j in range(0, 20)]
+        }))
 
         asyncio.ensure_future(telemetry_service.start_heartbeat())
 
