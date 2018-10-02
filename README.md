@@ -38,7 +38,7 @@ deactivate
 See also [this page](http://www.puzzlr.org/install-packages-pip-conda-environment/) and [this page](https://python-packaging.readthedocs.io/en/latest/minimal.html#creating-the-scaffolding).
 
 ```bash
-cd kubos_adapter
+cd kubos_gateway
 pip install -e .
 ```
 

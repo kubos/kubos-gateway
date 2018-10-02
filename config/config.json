@@ -1,6 +1,6 @@
 {
   "agent-token": "YOUR-AGENT-TOKEN",
-  "major-tom-endpoint": "wss://basic-auth-username:basic-auth-password@app.majortom.cloud/adapter_api/v1.0",
+  "major-tom-endpoint": "wss://basic-auth-username:basic-auth-password@app.majortom.cloud/gateway_api/v1.0",
   "path-prefix-to-subsystem": "kubos.hamilton.hamilton-1",
   "ssl-verify": true,
   "ssl-ca-bundle": "/path/to/a/valid/cabundle.pem (perhaps from https://curl.haxx.se/docs/caextract.html or use /usr/local/etc/openssl/cert.pem if you have it)",

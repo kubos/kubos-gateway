@@ -1,0 +1,15 @@
+from random import randint
+for i in range(0, 10):
+    loop.run_until_complete(major_tom.transmit({
+        'type': 'measurements',
+        'measurements': [{'path': 'kubos.mission0.satellite14.pim.metric', 'value': randint(0, 100), 'timestamp': 1514769700001 + (10000 * i) + j} for j in range(0, 500)]
+    }))
+
+        for i in range(0, 60 * 30):
+            loop.run_until_complete(major_tom.transmit({
+                'type': 'measurements',
+                'measurements': [{'path': 'kubos.mission0.satellite14.pim.metric' + str(j), 'value': randint(0, 10000),
+                                  'timestamp': 1536852679000 + i * 10} for j in range(0, 2000)]
+            }))
+            loop.run_until_complete(asyncio.sleep(0.5))
+

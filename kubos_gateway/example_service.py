@@ -1,9 +1,9 @@
 import json
 import logging
 
-from kubos_adapter.command_result import CommandResult
-from kubos_adapter.major_tom import Command
-from kubos_adapter.sat_service import SatService
+from kubos_gateway.command_result import CommandResult
+from kubos_gateway.major_tom import Command
+from kubos_gateway.sat_service import SatService
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class ExampleService(SatService):
     def __init__(self, port):
         super().__init__('example_service', port)
-        self.last_command_id = None  # FIXME - this should be handled by the satellite, not guessed by the adapter.
+        self.last_command_id = None  # FIXME - this should be handled by the satellite, not guessed by the gateway.
 
     async def message_received(self, message):
         logger.info("Received: {}".format(message))
