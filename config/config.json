@@ -1,5 +1,5 @@
 {
-  "agent-token": "YOUR-AGENT-TOKEN",
+  "gateway-token": "YOUR-GATEWAY-TOKEN",
   "major-tom-endpoint": "wss://basic-auth-username:basic-auth-password@app.majortom.cloud/gateway_api/v1.0",
   "path-prefix-to-subsystem": "kubos.hamilton.hamilton-1",
   "ssl-verify": true,
