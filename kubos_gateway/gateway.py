@@ -42,12 +42,14 @@ class Gateway(object):
 
         loop.run_until_complete(satellite.start_services())
 
-        from random import randint 
-        import time 
-        loop.run_until_complete(major_tom.transmit({
-            'type': 'measurements',
-            'measurements': [{'path': 'kubos.mission0.satellite14.pim.metric' + str(randint(0, 20)), 'value': randint(0, 100), 'timestamp': int((time.time() - 120) * 1000) + j} for j in range(0, 20)]
-        }))
+        # from random import randint
+        # import time
+        # loop.run_until_complete(major_tom.transmit({
+        #     'type': 'measurements',
+        #     'measurements': [{'path': 'kubos.mission0.satellite14.pim.metric' + str(randint(0, 20)), 'value': randint(0, 100), 'timestamp': int((time.time() - 120) * 1000) + j} for j in range(0, 20)]
+        # }))
+
+        # loop.run_until_complete(major_tom.transmit_log_messages([{ "message": "Testing nominal", "path": config['path-prefix-to-subsystem'] }, { "message": "Testing error", "level": "error", "path": config['path-prefix-to-subsystem'] }]))
 
         asyncio.ensure_future(telemetry_service.start_heartbeat())
 

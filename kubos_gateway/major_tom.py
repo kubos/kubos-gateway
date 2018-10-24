@@ -4,6 +4,8 @@ import os
 import re
 import ssl
 import logging
+import time
+
 import websockets
 
 from kubos_gateway.command import Command
@@ -73,7 +75,7 @@ class MajorTom:
             else:
                 await self.transmit_command_error(command.id, command_result.errors)
         elif message_type == "error":
-            logger.error("Error from backend: {}".format(message["error"]))
+            logger.error("Error from Major Tom: {}".format(message["error"]))
         elif message_type == "hello":
             logger.info("Major Tom says hello: {}".format(message))
         else:
@@ -105,6 +107,25 @@ class MajorTom:
                     # Timestamp is expected to be millisecond unix epoch
                     "timestamp": metric["timestamp"]
                 } for metric in metrics
+            ]
+        })
+
+    async def transmit_log_messages(self, log_messages):
+        await self.transmit({
+            "type": "log_messages",
+            "log_messages": [
+                {
+                    # Major Tom expects path to look like 'team.mission.system'
+                    "path": log_message["path"],
+
+                    # Can be "debug", "nominal", "warning", or "error".
+                    "level": log_message.get("level", "nominal"),
+
+                    "message": log_message["message"],
+
+                    # Timestamp is expected to be millisecond unix epoch
+                    "timestamp": log_message.get("timestamp", int(time.time() * 1000))
+                } for log_message in log_messages
             ]
         })
 
