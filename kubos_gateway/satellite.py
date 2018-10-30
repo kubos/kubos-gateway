@@ -21,7 +21,7 @@ class Satellite:
 
     async def send_metrics_to_mt(self, metrics):
         # {'parameter': 'voltage', 'subsystem': 'eps',
-        #  'timestamp': 1531412196211.0, 'value': '0.15'}
+        #  'timestamp': 1531412196.211, 'value': '0.15'}
         for metric in metrics:
             if type(metric['value']) is not float:
                 if metric['value'] in ['true', 'True']:
@@ -53,8 +53,8 @@ class Satellite:
 
                 "value": metric['value'],
 
-                # Timestamp is expected to be millisecond unix epoch
-                "timestamp": int(metric['timestamp'])
+                # Timestamp is expected to be fractional seconds since unix epoch
+                "timestamp": float(metric['timestamp'])
             } for metric in metrics
         ])
 
