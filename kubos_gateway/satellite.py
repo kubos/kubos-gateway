@@ -53,8 +53,9 @@ class Satellite:
 
                 "value": metric['value'],
 
-                # Timestamp is expected to be fractional seconds since unix epoch
-                "timestamp": float(metric['timestamp'])
+                # Timestamp from KubOS is expected to be fractional seconds since unix epoch.
+                # Convert to milliseconds for Major Tom
+                "timestamp": int(metric['timestamp'] * 1000)
             } for metric in metrics
         ])
 
