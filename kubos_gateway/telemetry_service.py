@@ -51,11 +51,11 @@ class TelemetryService(SatService):
 
     async def start_heartbeat(self):
         while True:
-            now_in_utc_milliseconds = int(round(time.time() * 1000))
+            now_in_utc = time.time()
             query = """
                     { telemetry(timestampGe:%d) {
                         timestamp, subsystem, parameter, value }
-                    }""" % (now_in_utc_milliseconds - 120000)
+                    }""" % (now_in_utc - 120)
             logger.debug(f"Telemetry Query: {query}")
             self.transport.sendto(query.encode())
 
