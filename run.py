@@ -16,5 +16,5 @@ with open(config_file, 'r') as configfile:
 if len(sys.argv) > 2:
     config["gateway-token"] = sys.argv[2]
 
-Gateway.set_log_level(logging.DEBUG, very_verbose=False)
+Gateway.set_log_level(logging.INFO, very_verbose=False)
 Gateway.run_forever(config)

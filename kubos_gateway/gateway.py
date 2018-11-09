@@ -61,6 +61,3 @@ class Gateway(object):
         logging.basicConfig(
             level=log_level,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        if not very_verbose:
-            logging.getLogger('asyncio').setLevel(logging.WARNING)
-            logging.getLogger('websockets.protocol').setLevel(logging.INFO)

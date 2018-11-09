@@ -1,10 +1,5 @@
 # Development
 
-## Plan
-
-1. Fix timestamps in KubOS
-
-
 First time:
 
 1. Setup a virtualenv
