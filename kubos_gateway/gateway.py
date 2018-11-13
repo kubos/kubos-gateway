@@ -29,7 +29,7 @@ class Gateway(object):
         asyncio.ensure_future(major_tom.connect_with_retries())
 
         # Initialize telemetry service so we can start the heartbeat
-        telemetry_service = TelemetryService(8005)
+        telemetry_service = TelemetryService(8006)
 
         # Setup services. Note that registry order matters.
         # Put services with more specific `match` methods first.
