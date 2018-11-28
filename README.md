@@ -6,10 +6,7 @@ First time:
 ```bash
 virtualenv virtualenv -p `which python3`
 source virtualenv/bin/activate
-```
-1. Install dependencies
-```bash
-pip install git+git://github.com/aaugustin/websockets.git
+pip install -r requirements.txt
 ```
 1. Copy `config.json` to `config.local.json` and edit it.
 1. For a server with basic auth endabled, set the websocket URL to something like `wss://username:password@staging.majortom.cloud/cable`
