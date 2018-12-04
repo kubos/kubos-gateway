@@ -57,7 +57,7 @@ class Gateway(object):
         loop.close()
 
     @staticmethod
-    def set_log_level(log_level=logging.INFO, very_verbose=False):
+    def set_log_level(log_level=logging.DEBUG, very_verbose=False):
         logging.basicConfig(
             level=log_level,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
