@@ -55,15 +55,15 @@ class TelemetryService(SatService):
             query = """
                     { telemetry(timestampGe:%d) {
                         timestamp, subsystem, parameter, value }
-                    }""" % (now_in_utc - 120)
+                    }""" % (now_in_utc - 30)
             logger.debug(f"Telemetry Query: {query}")
             self.transport.sendto(query.encode())
 
-            await asyncio.sleep(5)
-            query2 = """
-                    { telemetry(limit:40) {
-                        timestamp, subsystem, parameter, value }
-                    }"""
-            logger.debug(f"Telemetry Query: {query2}")
-            self.transport.sendto(query2.encode())
+#            await asyncio.sleep(5)
+#            query2 = """
+#                    { telemetry(limit:40) {
+#                        timestamp, subsystem, parameter, value }
+#                    }"""
+#            logger.debug(f"Telemetry Query: {query2}")
+#            self.transport.sendto(query2.encode())
             await asyncio.sleep(20)
