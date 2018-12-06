@@ -6,7 +6,6 @@ from kubos_gateway.satellite import Satellite
 from kubos_gateway.telemetry_service import TelemetryService
 from kubos_gateway.example_service import ExampleService
 from kubos_gateway.application_service import ApplicationService
-from kubos_gateway.pumpkin_mcu_service import PumpkinMCUService
 
 
 class Gateway(object):
@@ -22,7 +21,7 @@ class Gateway(object):
         satellite = Satellite(
             host=config['sat-ip'],
             major_tom=major_tom,
-            path_prefix_to_subsystem=config['path-prefix-to-subsystem'])
+            system_name=config['system-name'])
         major_tom.satellite = satellite
 
         # Connect to Major Tom
@@ -36,7 +35,6 @@ class Gateway(object):
         satellite.register_service(
             ApplicationService(8000),
             telemetry_service,
-            PumpkinMCUService(8004),
             ExampleService(8080)
         )
 

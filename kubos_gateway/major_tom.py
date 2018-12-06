@@ -99,11 +99,10 @@ class MajorTom:
             "type": "measurements",
             "measurements": [
                 {
-                    # Major Tom expects path to look like 'team.mission.system.subsystem.metric'
-                    "path": metric["path"],
-
+                    "system": metric["system"],
+                    "subsystem": metric["subsystem"],
+                    "metric": metric["metric"],
                     "value": metric["value"],
-
                     # Timestamp is expected to be millisecond unix epoch
                     "timestamp": metric["timestamp"]
                 } for metric in metrics
@@ -115,8 +114,7 @@ class MajorTom:
             "type": "log_messages",
             "log_messages": [
                 {
-                    # Major Tom expects path to look like 'team.mission.system'
-                    "path": log_message["path"],
+                    "system": log_message["system"],
 
                     # Can be "debug", "nominal", "warning", or "error".
                     "level": log_message.get("level", "nominal"),

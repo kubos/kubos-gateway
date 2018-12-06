@@ -29,7 +29,7 @@ class ApplicationService(SatService):
                 errors=[])
 
         else:
-            super().message_received(message)
+            await super().message_received(message)
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = super().validate_command(command)
@@ -91,6 +91,6 @@ class ApplicationService(SatService):
         return command_result
 
     def match(self, command):
-        if (command.subsystem == "application-service"):
+        if command.type == "app_query":
             return True
         return False

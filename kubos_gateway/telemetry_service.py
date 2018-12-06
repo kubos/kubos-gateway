@@ -26,7 +26,7 @@ class TelemetryService(SatService):
             await self.satellite.send_metrics_to_mt(
                 message['msg']['telemetry'])
         else:
-            super().message_received(message)
+            await super().message_received(message)
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = super().validate_command(command)
@@ -47,7 +47,7 @@ class TelemetryService(SatService):
         return command_result
 
     def match(self, command):
-        return command.type == "telemetry"  # Matches all subsystems
+        return command.type == "telemetry"
 
     async def start_heartbeat(self):
         while True:

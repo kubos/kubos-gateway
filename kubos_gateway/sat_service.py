@@ -94,4 +94,4 @@ class SatService:
         return command_result
 
     def match(self, command):
-        return command.subsystem == self.name
+        return False

@@ -8,10 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class Satellite:
-    def __init__(self, major_tom, host, path_prefix_to_subsystem):
+    def __init__(self, major_tom, host, system_name):
         self.major_tom = major_tom
         self.host = host
-        self.path_prefix_to_subsystem = path_prefix_to_subsystem
+        self.system_name = system_name
         self.registry = []
 
     def register_service(self, *services):
@@ -37,19 +37,11 @@ class Satellite:
                         )+" has invalid string value " +
                         ": {} : Converting to 0".format(metric['value']))
                     metric['value'] = 0
-            # Convert subsystem names and parameter names to lower case and
-            # replace spaces with dashes TODO: make it enforce alphanumeric
-            metric['subsystem'] = metric['subsystem'].replace(' ', '-').lower()
-            metric['parameter'] = metric['parameter'].replace(' ', '-').lower()
         await self.major_tom.transmit_metrics([
             {
-                # Major Tom expects path to look like:
-                # 'team.mission.system.subsystem.metric'
-                "path": '.'.join(
-                    [
-                        self.path_prefix_to_subsystem,
-                        metric['subsystem'], metric['parameter']
-                    ]),
+                "system": self.system_name,
+                "subsystem": metric['subsystem'],
+                "metric": metric['parameter'],
 
                 "value": metric['value'],
 
@@ -72,7 +64,7 @@ class Satellite:
                 command,
                 error=(
                     "No service was available to process command for "
-                    f"{command.type} subsystem {command.subsystem}"))
+                    f"{command.type} system {command.system}"))
         else:
             matched_service = matched_services[0]
 

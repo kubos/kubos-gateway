@@ -21,7 +21,7 @@ class ExampleService(SatService):
                                                 return_code=0,
                                                 output=ExampleService.pretty_message(message))
         else:
-            super().message_received(message)
+            await super().message_received(message)
 
     def validate_command(self, command: Command) -> CommandResult:
         command_result = super().validate_command(command)
