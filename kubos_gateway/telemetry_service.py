@@ -17,12 +17,12 @@ class TelemetryService(SatService):
     async def message_received(self, message):
         logger.info("Received: {}".format(message))
 
-        # {'errs': '', 'msg': {'telemetry': [
+        # {'errors': '', 'data': {'telemetry': [
         #   {'parameter': 'voltage', 'subsystem': 'eps',
         # 'timestamp': 1531412196211.0, 'value': '0.15'},
         #   ...
 
-        if message.get('msg').get('telemetry'):
+        if message.get('data').get('telemetry'):
             await self.satellite.send_metrics_to_mt(
                 message['msg']['telemetry'])
         else:
