@@ -24,7 +24,7 @@ class TelemetryService(SatService):
 
         if message.get('data').get('telemetry'):
             await self.satellite.send_metrics_to_mt(
-                message['msg']['telemetry'])
+                message['data']['telemetry'])
         else:
             await super().message_received(message)
 
