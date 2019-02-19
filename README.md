@@ -4,6 +4,7 @@ First time:
 
 1. Setup a virtualenv
 ```bash
+pip3 install virtualenv
 virtualenv virtualenv -p `which python3`
 source virtualenv/bin/activate
 pip3 install --upgrade -r requirements.txt

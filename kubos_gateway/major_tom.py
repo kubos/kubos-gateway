@@ -39,7 +39,6 @@ class MajorTom:
 
         logger.info("Connecting to Major Tom")
         websocket = await websockets.connect(self.config["major-tom-endpoint"],
-                                             origin=self.config.get("major-tom-origin", None),
                                              extra_headers={
                                                  "X-Gateway-Token": self.config["gateway-token"]
                                              },
