@@ -84,7 +84,7 @@ class Satellite:
                 logger.info('Sending to {}: {}'.format(
                     matched_service.name, command_result.payload))
                 matched_service.query(
-                    command_result.payload.encode())
+                    command_result.payload)
                 command_result.mark_as_sent()
 
             return command_result
