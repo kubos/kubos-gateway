@@ -24,10 +24,12 @@ class SatService:
         logger.info(f'Connected to {self.name} sat service')
 
     async def query(self, query):
+        wrapped_query = '{"query":"{%s}"}' % query
+        logger.debug(f'Wrapped query {wrapped_query}')
         async with self.session.request(
                 method='POST',
                 url="http://{}:{}".format(self.satellite.host, self.port),
-                data=query,
+                data=wrapped_query,
                 headers={"Content-Type":"application/json"}
         ) as resp:
             body = await resp.read()

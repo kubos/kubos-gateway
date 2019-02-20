@@ -52,7 +52,7 @@ class TelemetryService(SatService):
     async def start_heartbeat(self):
         while True:
             now_in_utc = time.time()
-            query = "{\"query\":\"{telemetry(timestampGe:%d) {timestamp, subsystem, parameter, value }}\"}" % (now_in_utc - 30)
+            query = "telemetry(timestampGe:%d) {timestamp, subsystem, parameter, value }" % (now_in_utc - 30)
             logger.debug(f"Telemetry Query: {query}")
             await self.query(query)
 
