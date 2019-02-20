@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import aiohttp
 
 from kubos_gateway.command_result import CommandResult
 from kubos_gateway.major_tom import Command
@@ -8,44 +9,29 @@ from kubos_gateway.major_tom import Command
 logger = logging.getLogger(__name__)
 
 
-class SatConnectionProtocol:
-    def __init__(self, loop, service):
-        self.loop = loop
-        self.transport = None
-        self.service = service
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        asyncio.ensure_future(
-            self.service.message_received(json.loads(data.decode())))
-        # self.transport.close()
-
-    # TODO: "[Errno 61] Connection refused" never gets fed back to Major Tom.
-    def error_received(self, exc):
-        logger.info('Error received: {}'.format(exc))
-
-    def connection_lost(self, exc):
-        logger.info("Socket closed")
-        # self.loop.call_later(5, SatConnection.connect_to_sat())
-
-
 class SatService:
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.transport = None
-        self.protocol = None
         self.satellite = None
+        self.session = None
+        self.last_command_id = None
 
     async def connect(self):
         logger.info(f'Connecting to the {self.name} sat service')
         loop = asyncio.get_event_loop()
-        self.transport, self.protocol = await loop.create_datagram_endpoint(
-            lambda: SatConnectionProtocol(loop, self),
-            remote_addr=(self.satellite.host, self.port))
+        self.session = aiohttp.ClientSession(loop=loop)
         logger.info(f'Connected to {self.name} sat service')
+
+    async def query(self, query):
+        async with self.session.request(
+                method='POST',
+                url="http://{}:{}".format(self.satellite.host, self.port),
+                data=query,
+                headers={"Content-Type":"application/json"}
+        ) as resp:
+            body = await resp.read()
+            await self.message_received(json.loads(body))
 
     async def message_received(self, message):
         logger.info("Received: {}".format(message))
