@@ -28,7 +28,7 @@ class SatService:
         query = query.replace("\t", "")
         query = query.replace(" ", "")
         wrapped_query = '{"query":"%s"}' % query
-        logger.debug(f'{name} wrapped query {wrapped_query}')
+        logger.debug(f'{self.name} wrapped query {wrapped_query}')
         async with self.session.request(
                 method='POST',
                 url="http://{}:{}".format(self.satellite.host, self.port),
