@@ -83,7 +83,7 @@ class Satellite:
                 matched_service.last_command_id = command.id  # FIXME
                 logger.info('Sending to {}: {}'.format(
                     matched_service.name, command_result.payload))
-                matched_service.query(
+                await matched_service.query(
                     command_result.payload)
                 command_result.mark_as_sent()
 
