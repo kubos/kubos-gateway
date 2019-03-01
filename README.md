@@ -1,3 +1,8 @@
+# KubOS Python Gateway for Major Tom
+
+*Note:* The gateway is currently in Beta, and is not well documented. 
+
+
 # First time setup
 
 1. Setup a virtualenv
