@@ -24,6 +24,8 @@ pip3 install --upgrade -r requirements.txt
 python run.py
 ```
 
+See `python run.py --help`
+
 Deactivate virtualenv:
 
 ```bash
