@@ -5,11 +5,12 @@ import re
 import ssl
 import logging
 import time
+import traceback
 
 import websockets
 
 from kubos_gateway.command import Command
-from kubos_gateway.command_result import CommandResult
+from kubos_gateway.satellite import Satellite
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +69,14 @@ class MajorTom:
         logger.info("From Major Tom: {}".format(message))
         if message_type == "command":
             command = Command(message["command"])
-            command_result: CommandResult = await self.satellite.handle_command(command)
-            if command_result.sent:
-                await self.transmit_command_payload(command.id, command_result.payload)
+            ## Here is where we can build in sending to multiple systems/satellites
+            if command.system == self.satellite.system_name:
+                try:
+                    await self.satellite.send_cmd(command)
+                except Exception:
+                    await self.fail_command(command.id, errors=["Failed to send","Error: {}".format(traceback.format_exc())])
             else:
-                await self.transmit_command_error(command.id, command_result.errors)
+                await self.fail_command(command.id, errors=["System: {} not available".format(command.system)])
         elif message_type == "error":
             logger.error("Error from Major Tom: {}".format(message["error"]))
         elif message_type == "hello":
@@ -126,44 +130,39 @@ class MajorTom:
             ]
         })
 
-    async def transmit_command_payload(self, command_id, payload):
-        await self.transmit({
-            "type": "command_status",
-            "command_status": {
-                "source": "gateway",
+    async def transmit_command_update(self, command_id: int, state: str, dict = {}):
+        update = {
+            "type": "command_update",
+            "command": {
                 "id": command_id,
-                "payload": payload
+                "state": state
             }
-        })
+        }
+        valid_fields = [
+            "payload",
+            "status",
+            "output",
+            "errors",
+            "progress_1_current",
+            "progress_1_max",
+            "progress_1_label",
+            "progress_2_current",
+            "progress_2_max",
+            "progress_2_label"
+        ]
 
-    async def transmit_command_ack(self, command_id, return_code, output, errors):
-        await self.transmit({
-            "type": "command_status",
-            "command_status": {
-                "source": "remote",
-                "id": command_id,
-                "errors": errors,
-                "code": return_code,
-                "output": output
-            }
-        })
+        for field in dict:
+            if field in valid_fields:
+                update['command'][field] = dict[field]
+            else:
+                logger.error('Field {} is not a valid metadata field. \nValid fields: {}'.format(field,valid_fields))
+        await self.transmit(update)
 
-    async def transmit_command_error(self, command_id, errors):
-        await self.transmit({
-            "type": "command_status",
-            "command_status": {
-                "source": "gateway",
-                "id": command_id,
-                "errors": errors
-            }
-        })
+    async def fail_command(self, command_id, errors: list):
+        await self.transmit_command_update(command_id = command_id, state = "failed", dict = {"errors":errors})
 
-    async def transmit_script_error(self, script_id, errors):
-        await self.transmit({
-            "type": "script_status",
-            "script_status": {
-                "source": "gateway",
-                "id": script_id,
-                "errors": errors
-            }
-        })
+    async def complete_command(self, command_id, output: str):
+        await self.transmit_command_update(command_id = command_id, state = "completed", dict = {"output":output})
+
+    async def transmitted_command(self, command_id, payload = "None Provided"):
+        await self.transmit_command_update(command_id = command_id, state = "transmitted_to_system", dict = {"payload":payload})
