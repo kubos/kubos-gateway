@@ -1,6 +1,9 @@
 import asyncio
 import logging
 import traceback
+import time
+import toml
+import json
 
 from kubos_gateway.spacepacket import Spacepacket
 
@@ -31,7 +34,7 @@ class SatProtocol:
         self.on_con_lost.set_result(True)
 
 class Satellite:
-    def __init__(self, system_name, major_tom, send_port, receive_port, host, bind = '127.0.0.1'):
+    def __init__(self, system_name, major_tom, sat_config_filepath, send_port, receive_port, host, bind = '127.0.0.1'):
         self.system_name = system_name
         self.major_tom = major_tom
         self.bind = bind
@@ -40,6 +43,8 @@ class Satellite:
         self.send_port = send_port
         self.transport = None
         self.protocol = None
+        self.sat_config = toml.load(sat_config_filepath)
+        self.connected = False
 
     async def connect(self):
         logger.info(f'Connecting to the Satellite')
@@ -47,15 +52,19 @@ class Satellite:
         self.transport, self.protocol = await loop.create_datagram_endpoint(
             lambda: SatProtocol(loop,self),
             local_addr=(self.bind, self.receive_port))
+        self.connected = True
         logger.info(f'Connected to the Satellite')
 
     async def message_received(self, packet):
         sp = Spacepacket()
         sp.parse(packet)
         if sp.type == 1:
-            logger.info(f'GraphQL Response received for command ID: {sp.command_id}')
-            await self.major_tom.complete_command(command_id=sp.command_id,
-                                            output=sp.payload)
+            if sp.command_id == 0:
+                await self.send_metrics(sp.payload)
+            else:
+                logger.info(f'GraphQL Response received for command ID: {sp.command_id}')
+                await self.major_tom.complete_command(command_id=sp.command_id,
+                                                      output=sp.payload)
         elif sp.type == 0:
             logger.warning("UDP type is not currently supported.")
 
@@ -81,16 +90,53 @@ class Satellite:
         #         errors=[json.dumps(error) for error in message])
 
     async def send_cmd(self, command_obj):
-        sp = self.build_command_packet(command_obj=command_obj)
-        if sp == False:
-            return
-        logger.info(f"Sending: {sp.packet} to {self.host} : {self.send_port}")
         try:
-            self.transport.sendto(sp.packet, addr=(self.host,self.send_port))
+            sp = self.build_command_packet(command_obj=command_obj)
+            self.send_packet(sp=sp)
             await self.major_tom.transmitted_command(command_id=command_obj.id,payload=("Hex Packet: "+sp.packet.hex()))
         except Exception as e:
             await self.major_tom.fail_command(command_obj.id, errors=["Failed to send","Error: {}".format(traceback.format_exc())])
             raise e
+
+    async def send_packet(self, sp):
+        logger.debug(f"Sending: {sp.packet} to {self.host} : {self.send_port}")
+        try:
+            self.transport.sendto(sp.packet, addr=(self.host,self.send_port))
+        except Exception as e:
+            raise e
+
+    async def get_telemetry(self,refresh_frequency = 5):
+        if "telemetry-service" not in self.sat_config:
+            logger.warning('"telemetry-service" not available in satellite config.toml.')
+            return
+            
+        # Wait for connection to establish
+        while self.connected == False:
+            await asyncio.sleep(1)
+        logger.info('Starting Automatic Telemetry Collection')
+        while True:
+            try:
+                sp = Spacepacket()
+                now_in_utc = time.time()
+                query = '{"query": "{telemetry(timestampGe:%d) {timestamp, subsystem, parameter, value }}"}' % (now_in_utc - refresh_frequency)
+                sp.build(type="graphql",command_id=0,port=self.sat_config["telemetry-service"]["addr"]["port"],payload=query)
+                await self.send_packet(sp=sp)
+            except Exception as e:
+                logger.error(f'Telemetry retrieval failed: {e}, {type(e)}, {e.args}')
+
+            await asyncio.sleep(refresh_frequency)
+
+    async def send_metrics(self, payload):
+        payload = json.loads(payload)
+        # logger.debug(f'Metrics to parse: {type(payload)}, {payload}')
+        metrics = payload['data']['telemetry']
+        for metric in metrics:
+            ## TODO make onboard time match Major Tom
+            metric['timestamp'] = metric['timestamp']*1000
+            metric['system'] = self.system_name
+            ## TODO make onboard key match Major Tom (parameter == metric)
+            metric['metric'] = metric['parameter']
+        await self.major_tom.transmit_metrics(metrics = metrics)
 
     def build_command_packet(self,command_obj):
         sp = Spacepacket()

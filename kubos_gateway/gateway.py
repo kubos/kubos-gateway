@@ -4,7 +4,6 @@ import logging
 from kubos_gateway.major_tom import MajorTom
 from kubos_gateway.satellite import Satellite
 
-
 class Gateway(object):
     @staticmethod
     def run_forever(config):
@@ -18,6 +17,7 @@ class Gateway(object):
         satellite = Satellite(
             system_name=config['system-name'],
             major_tom=major_tom,
+            sat_config_filepath=config['sat-config-filepath'],
             send_port=config['comm-service-port'],
             receive_port=config['receive-port'],
             host=config['sat-ip'],
@@ -30,6 +30,9 @@ class Gateway(object):
         # Connect to Major Tom
         asyncio.ensure_future(major_tom.connect_with_retries())
 
+        # Gets all telemetry from the satellite when in local development mode
+        if config['auto-fetch-telemetry']:
+            asyncio.ensure_future(satellite.get_telemetry())
 
         loop.run_forever()
         loop.close()

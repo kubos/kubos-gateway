@@ -7,5 +7,7 @@
   "sat-ip": "xxx.xxx.xxx.xxx",
   "bind-ip": "127.0.0.1",
   "comm-service-port": 12345,
-  "receive-port": 10001
+  "receive-port": 10001,
+  "auto-fetch-telemetry": false,
+  "sat-config-filepath": "/local/path/to/kubos/config.toml"
 }

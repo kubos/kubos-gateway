@@ -1,2 +1,4 @@
 git+git://github.com/aaugustin/websockets@7.0#egg=websockets
 aiohttp
+toml
+json
