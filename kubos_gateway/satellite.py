@@ -45,6 +45,7 @@ class Satellite:
         self.protocol = None
         self.sat_config = toml.load(sat_config_filepath)
         self.connected = False
+        self.build_command_definitions()
 
     async def connect(self):
         logger.info(f'Connecting to the Satellite')
@@ -109,7 +110,7 @@ class Satellite:
         if "telemetry-service" not in self.sat_config:
             logger.warning('"telemetry-service" not available in satellite config.toml.')
             return
-            
+
         # Wait for connection to establish
         while self.connected == False:
             await asyncio.sleep(1)
@@ -141,7 +142,7 @@ class Satellite:
     def build_command_packet(self,command_obj):
         sp = Spacepacket()
         logger.info(f"received command: {command_obj.type}")
-        if command_obj.type == 'kubos_graphql':
+        if command_obj.type in self.available_services:
             if command_obj.fields['type'] == 'query':
                 payload = "{\"query\": \"%s\"}" % command_obj.fields['request']
             elif command_obj.fields['type'] == 'mutation':
@@ -152,10 +153,27 @@ class Satellite:
             sp.build(
                 type = 'graphql',
                 command_id = command_obj.id,
-                port = command_obj.fields['service'],
+                port = command_obj.fields['port'],
                 payload = payload)
             return sp
         else:
             logger.error('Command Building Failed.')
             asyncio.ensure_future(self.major_tom.fail_command(command_id=command_obj.id,errors=[f"Invalid Command: {command_obj.type}"]))
             return False
+
+    def build_command_definitions(self):
+        self.available_services = []
+        command_definitions = {}
+        command_definitions["definitions"] = {}
+        for service in self.sat_config:
+            self.available_services.append(service)
+            command_definitions["definitions"][service] = {
+              "display_name": f"{service} GraphQL Request",
+              "description": f"Send a GraphQL mutation or query to the {service} service",
+              "fields": [
+                {"name": "port", "type": "integer", "value": self.sat_config[service]["addr"]["port"]},
+                {"name": "type", "type": "string", "range": ["query","mutation"]},
+                {"name": "request", "type": "text", "default": "{ping}"}
+              ]
+            }
+        logger.info(f"KubOS Service GraphQL Command Definitions: {json.dumps(command_definitions)}")
