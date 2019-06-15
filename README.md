@@ -9,6 +9,7 @@
 ```bash
 pip3 install virtualenv
 virtualenv virtualenv -p `which python3`
+# or: python3 -m venv virtualenv
 source virtualenv/bin/activate
 pip3 install --upgrade -r requirements.txt
 ```
