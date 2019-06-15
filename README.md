@@ -41,15 +41,3 @@ Specifying a config file to use:
 ```bash
 python run.py config/config.local.json
 ```
-
-Specifying a mode:
-
-```bash
-python run.py config/config.local.json gateway
-python run.py config/config.local.json stream_tlm
-```
-
-Available modes:
-
-* gateway
-* stream\_tlm

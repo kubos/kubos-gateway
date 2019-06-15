@@ -1,8 +1,13 @@
 {
   "gateway-token": "YOUR-GATEWAY-TOKEN",
   "major-tom-endpoint": "wss://basic-auth-username:basic-auth-password@app.majortom.cloud/gateway_api/v1.0",
-  "system-name": "hamilton-1",
+  "system-name": "YOUR SYSTEM NAME",
   "ssl-verify": true,
   "ssl-ca-bundle": "/path/to/a/valid/cabundle.pem (perhaps from https://curl.haxx.se/docs/caextract.html or use /usr/local/etc/openssl/cert.pem if you have it)",
-  "sat-ip": "xxx.xxx.xxx.xxx"
+  "sat-ip": "xxx.xxx.xxx.xxx",
+  "bind-ip": "127.0.0.1",
+  "comm-service-port": 12345,
+  "receive-port": 10001,
+  "auto-fetch-telemetry": false,
+  "sat-config-filepath": "/local/path/to/kubos/config.toml"
 }

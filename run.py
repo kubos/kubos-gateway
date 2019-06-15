@@ -4,18 +4,10 @@ import sys
 import argparse
 
 from kubos_gateway.gateway import Gateway
-from kubos_gateway.tools.stream_tlm import TelemetryStreaming
-from kubos_gateway.tools.power_tlm import DemoDataStreaming
 
 def main():
 
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        '-m',
-        '--mode',
-        help='Mode of the gateway. Defaults to "gateway", can be alternatively set to "fixed" or "demo".',
-        required=False)
 
     parser.add_argument(
         '-c',
@@ -47,12 +39,7 @@ def main():
     else:
         Gateway.set_log_level(logging.DEBUG, very_verbose=True)
 
-    if args.mode == 'fixed':
-        TelemetryStreaming.run_forever(config)
-    elif args.mode == 'demo':
-        DemoDataStreaming.run_forever(config)
-    else:
-        Gateway.run_forever(config)
+    Gateway.run_forever(config)
 
 if __name__ == "__main__":
     main()

@@ -1,93 +1,179 @@
 import asyncio
 import logging
+import traceback
+import time
+import toml
+import json
 
-from kubos_gateway.command_result import CommandResult
-from kubos_gateway.major_tom import Command
+from kubos_gateway.spacepacket import Spacepacket
 
 logger = logging.getLogger(__name__)
 
 
+class SatProtocol:
+    def __init__(self, loop, satellite):
+        logger.info("SatProtocol Created")
+        self.loop = loop
+        self.satellite = satellite
+        self.transport = None
+        self.on_con_lost = loop.create_future()
+
+    def connection_made(self, transport):
+        logger.info("SatProtocol Connection Made")
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        logger.info("message received from {}: {}".format(addr,data))
+        asyncio.ensure_future(self.satellite.message_received(packet=data))
+
+    def error_received(self, exc):
+        logger.error('Error received: {}'.format(exc))
+
+    def connection_lost(self, exc):
+        logger.info("Connection closed")
+        self.on_con_lost.set_result(True)
+
 class Satellite:
-    def __init__(self, major_tom, host, system_name):
-        self.major_tom = major_tom
-        self.host = host
+    def __init__(self, system_name, major_tom, sat_config_filepath, send_port, receive_port, host, bind = '127.0.0.1'):
         self.system_name = system_name
-        self.registry = []
+        self.major_tom = major_tom
+        self.bind = bind
+        self.receive_port = receive_port
+        self.host = host
+        self.send_port = send_port
+        self.transport = None
+        self.protocol = None
+        self.sat_config = toml.load(sat_config_filepath)
+        self.connected = False
+        self.build_command_definitions()
 
-    def register_service(self, *services):
-        for service in services:
-            self.registry.append(service)
-            service.satellite = self
+    async def connect(self):
+        logger.info(f'Connecting to the Satellite')
+        loop = asyncio.get_event_loop()
+        self.transport, self.protocol = await loop.create_datagram_endpoint(
+            lambda: SatProtocol(loop,self),
+            local_addr=(self.bind, self.receive_port))
+        self.connected = True
+        logger.info(f'Connected to the Satellite')
 
-    async def send_metrics_to_mt(self, metrics):
-        # {'parameter': 'voltage', 'subsystem': 'eps',
-        #  'timestamp': 1531412196.211, 'value': '0.15'}
+    async def message_received(self, packet):
+        sp = Spacepacket()
+        sp.parse(packet)
+        if sp.type == 1:
+            if sp.command_id == 0:
+                await self.send_metrics(sp.payload)
+            else:
+                logger.info(f'GraphQL Response received for command ID: {sp.command_id}')
+                await self.major_tom.complete_command(command_id=sp.command_id,
+                                                      output=sp.payload)
+        elif sp.type == 0:
+            logger.warning("UDP type is not currently supported.")
+
+        # TODO: graphql validation
+        # # {'errs': '', 'msg': { errs: '..' }}
+        # if isinstance(message, dict) \
+        #         and 'errs' in message \
+        #         and len(message['errs']) > 0:
+        #     await self.satellite.send_ack_to_mt(
+        #         self.last_command_id,
+        #         return_code=1,
+        #         errors=[error["message"] for error in message['errs']])
+        #
+        # # [{'message': 'Unknown field "ping" on type "Query"',
+        # #   'locations': [{'line': 1, 'column': 2}]}]
+        # elif isinstance(message, list) \
+        #         and len(message) > 0 \
+        #         and isinstance(message[0], dict) \
+        #         and 'locations' in message[0]:
+        #     await self.satellite.send_ack_to_mt(
+        #         self.last_command_id,
+        #         return_code=1,
+        #         errors=[json.dumps(error) for error in message])
+
+    async def send_cmd(self, command_obj):
+        try:
+            sp = self.build_command_packet(command_obj=command_obj)
+            self.send_packet(sp=sp)
+            await self.major_tom.transmitted_command(command_id=command_obj.id,payload=("Hex Packet: "+sp.packet.hex()))
+        except Exception as e:
+            await self.major_tom.fail_command(command_obj.id, errors=["Failed to send","Error: {}".format(traceback.format_exc())])
+            raise e
+
+    async def send_packet(self, sp):
+        logger.debug(f"Sending: {sp.packet} to {self.host} : {self.send_port}")
+        try:
+            self.transport.sendto(sp.packet, addr=(self.host,self.send_port))
+        except Exception as e:
+            raise e
+
+    async def get_telemetry(self,refresh_frequency = 5):
+        if "telemetry-service" not in self.sat_config:
+            logger.warning('"telemetry-service" not available in satellite config.toml.')
+            return
+
+        # Wait for connection to establish
+        while self.connected == False:
+            await asyncio.sleep(1)
+        logger.info('Starting Automatic Telemetry Collection')
+        while True:
+            try:
+                sp = Spacepacket()
+                now_in_utc = time.time()
+                query = '{"query": "{telemetry(timestampGe:%d) {timestamp, subsystem, parameter, value }}"}' % (now_in_utc - refresh_frequency)
+                sp.build(type="graphql",command_id=0,port=self.sat_config["telemetry-service"]["addr"]["port"],payload=query)
+                await self.send_packet(sp=sp)
+            except Exception as e:
+                logger.error(f'Telemetry retrieval failed: {e}, {type(e)}, {e.args}')
+
+            await asyncio.sleep(refresh_frequency)
+
+    async def send_metrics(self, payload):
+        payload = json.loads(payload)
+        # logger.debug(f'Metrics to parse: {type(payload)}, {payload}')
+        metrics = payload['data']['telemetry']
         for metric in metrics:
-            if type(metric['value']) is not float:
-                if metric['value'] in ['true', 'True']:
-                    metric['value'] = 1.0
-                elif metric['value'] in ['false', 'False']:
-                    metric['value'] = 0.0
-                try:
-                    metric['value'] = float(metric['value'])
-                except ValueError as e:
-                    logger.warning("parameter: {}, subsystem: {}".format(
-                            metric['parameter'],
-                            metric['subsystem']
-                        )+" has invalid string value " +
-                        ": {} : Converting to 0".format(metric['value']))
-                    metric['value'] = 0
-        await self.major_tom.transmit_metrics([
-            {
-                "system": self.system_name,
-                "subsystem": metric['subsystem'],
-                "metric": metric['parameter'],
+            ## TODO make onboard time match Major Tom
+            metric['timestamp'] = metric['timestamp']*1000
+            metric['system'] = self.system_name
+            ## TODO make onboard key match Major Tom (parameter == metric)
+            metric['metric'] = metric['parameter']
+        await self.major_tom.transmit_metrics(metrics = metrics)
 
-                "value": metric['value'],
+    def build_command_packet(self,command_obj):
+        sp = Spacepacket()
+        logger.info(f"received command: {command_obj.type}")
+        if command_obj.type in self.available_services:
+            if command_obj.fields['type'] == 'query':
+                payload = "{\"query\": \"%s\"}" % command_obj.fields['request']
+            elif command_obj.fields['type'] == 'mutation':
+                payload = "{\"query\": \"mutation %s\"}" % command_obj.fields['request']
+            else:
+                asyncio.ensure_future(self.major_tom.fail_command(command_id=command_obj.id,errors=[f"Invalid Type: {command_obj.fields['type']}"]))
 
-                # Timestamp from KubOS is expected to be fractional seconds since unix epoch.
-                # Convert to milliseconds for Major Tom
-                "timestamp": int(metric['timestamp'] * 1000)
-            } for metric in metrics
-        ])
-
-    async def send_ack_to_mt(
-            self, command_id, return_code, output=None, errors=None):
-        await self.major_tom.transmit_command_ack(
-            command_id, return_code, output, errors)
-
-    async def handle_command(self, command: Command) -> CommandResult:
-        matched_services = [
-            service for service in self.registry if service.match(command)]
-        if len(matched_services) == 0:
-            return CommandResult(
-                command,
-                error=(
-                    "No service was available to process command for "
-                    f"{command.type} system {command.system}"))
+            sp.build(
+                type = 'graphql',
+                command_id = command_obj.id,
+                port = command_obj.fields['port'],
+                payload = payload)
+            return sp
         else:
-            matched_service = matched_services[0]
+            logger.error('Command Building Failed.')
+            asyncio.ensure_future(self.major_tom.fail_command(command_id=command_obj.id,errors=[f"Invalid Command: {command_obj.type}"]))
+            return False
 
-            if len(matched_services) > 1:
-                logger.info(
-                    f"Multiple services matched command {command.type}."
-                    f" Selected '{matched_service.name}'.")
-
-            command_result: CommandResult = matched_service.validate_command(
-                command)
-
-            if not command_result.matched:
-                command_result.errors.append(f"Unknown command {command.type}")
-
-            if command_result.valid():
-                matched_service.last_command_id = command.id  # FIXME
-                logger.info('Sending to {}: {}'.format(
-                    matched_service.name, command_result.payload))
-                await matched_service.query(
-                    command_result.payload)
-                command_result.mark_as_sent()
-
-            return command_result
-
-    async def start_services(self):
-        await asyncio.gather(*[service.connect() for service in self.registry])
+    def build_command_definitions(self):
+        self.available_services = []
+        command_definitions = {}
+        command_definitions["definitions"] = {}
+        for service in self.sat_config:
+            self.available_services.append(service)
+            command_definitions["definitions"][service] = {
+              "display_name": f"{service} GraphQL Request",
+              "description": f"Send a GraphQL mutation or query to the {service} service",
+              "fields": [
+                {"name": "port", "type": "integer", "value": self.sat_config[service]["addr"]["port"]},
+                {"name": "type", "type": "string", "range": ["query","mutation"]},
+                {"name": "request", "type": "text", "default": "{ping}"}
+              ]
+            }
+        logger.info(f"KubOS Service GraphQL Command Definitions: {json.dumps(command_definitions)}")
