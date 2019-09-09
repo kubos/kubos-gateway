@@ -11,6 +11,7 @@ class KubOSSat:
     def __init__(self, name, sat_config_path):
         self.name = name
         self.sat_config_path = sat_config_path
+        self.config = None
         self.definitions = {
             "command_definitions_update": {
                 "display_name": "Command Definitions Update",
@@ -29,6 +30,15 @@ class KubOSSat:
                         system=self.name,
                         definitions=self.definitions))
                     output = f"Updated Definitions from config file: {self.sat_config_path}"
+                elif command.type in self.config:
+                    """GraphQL Request Command"""
+                    pass
+                elif command.type is "uplink_file":
+                    pass
+                elif command.type is "downlink_file":
+                    pass
+                elif command.type is "shell-command":
+                    pass
             else:
                 asyncio.ensure_future(gateway.fail_command(
                     command_id=command.id, errors=[f"Invalid command type: {command.type}"]))
@@ -65,7 +75,7 @@ class KubOSSat:
                     ]
                 }
             elif service in ["shell-service"]:
-                self.definitions[service] = {
+                self.definitions["shell-command"] = {
                     "display_name": "Shell Service Command",
                     "description": "Command to be executed using the shell service",
                     "fields": [
