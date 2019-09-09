@@ -1,1 +1,0 @@
-name = "kubos_gateway"

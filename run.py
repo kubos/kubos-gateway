@@ -1,45 +1,76 @@
-import json
 import logging
-import sys
+import asyncio
+import time
 import argparse
+from majortom_gateway import GatewayAPI
+from kubos_sat import KubOSSat
 
-from kubos_gateway.gateway import Gateway
+logger = logging.getLogger(__name__)
 
-def main():
+# Set up command line arguments
+parser = argparse.ArgumentParser()
+# Required Args
+parser.add_argument(
+    "majortomhost",
+    help='Major Tom host name. Can also be an IP address for local development/on prem deployments.')
+parser.add_argument(
+    "gatewaytoken",
+    help='Gateway Token used to authenticate the connection. Look this up in Major Tom under the gateway page for the gateway you are trying to connect.')
+parser.add_argument(
+    "sat_config_path",
+    help="Local path to the KubOS Satellite's config.toml. You'll need to retrieve the file from the satellite.")
 
-    parser = argparse.ArgumentParser()
+# Optional Args and Flags
+parser.add_argument(
+    '-b',
+    '--basicauth',
+    help='Basic Authentication credentials. Not required unless BasicAuth is active on the Major Tom instance. Must be in the format "username:password".')
+parser.add_argument(
+    '-N',
+    '--name',
+    default="KubOS Sat",
+    help='Name for the Satellite. Default is "KubOS Sat".')
+parser.add_argument(
+    '-l',
+    '--loglevel',
+    choices=["info", "error"],
+    help='Log level for the logger. Defaults to "debug", can be set to "info", or "error".')
+parser.add_argument(
+    '--http',
+    help="If included, you can instruct the gateway to connect without encryption. This is only to support on prem deployments or for local development when not using https.",
+    action="store_true")
 
-    parser.add_argument(
-        '-c',
-        '--config',
-        help='Path to the config.local.json file, defaults to "config/config.local.json".',
-        required=False)
+args = parser.parse_args()
 
-    parser.add_argument(
-        '-l',
-        '--loglevel',
-        help='Log level for the logger. Defaults to "debug", can be set to "info", or "error".',
-        required=False)
+if args.loglevel == 'error':
+    logging.basicConfig(
+        level=logging.ERROR,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+elif args.loglevel == 'info':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+else:
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    args = parser.parse_args()
+logger.info("Starting up!")
+loop = asyncio.get_event_loop()
 
-    if args.config != None:
-        config_filepath = args.config
-    else:
-        config_filepath = "config/config.local.json"
+logger.debug("Setting up Satellite")
+satellite = KubOSSat(name=args.name, sat_config_path=args.sat_config_path)
 
-    with open(config_filepath, 'r') as configfile:
-        # Allow "comments" in JSON for convenience.
-        config = json.loads("\n".join([line for line in configfile if not line.startswith('/') or line.startswith('#')]))
+logger.debug("Setting up MajorTom")
+gateway = GatewayAPI(
+    host=args.majortomhost,
+    gateway_token=args.gatewaytoken,
+    basic_auth=args.basicauth,
+    command_callback=satellite.command_callback,
+    http=args.http)
 
-    if args.loglevel == 'error':
-        Gateway.set_log_level(logging.ERROR, very_verbose=False)
-    elif args.loglevel == 'info':
-        Gateway.set_log_level(logging.INFO, very_verbose=False)
-    else:
-        Gateway.set_log_level(logging.DEBUG, very_verbose=True)
+logger.debug("Connecting to MajorTom")
+asyncio.ensure_future(gateway.connect_with_retries())
 
-    Gateway.run_forever(config)
-
-if __name__ == "__main__":
-    main()
+logger.debug("Starting Event Loop")
+loop.run_forever()
