@@ -1,2 +1,2 @@
-from kubos_sat import KubOSSat
+from kubos_sat.kubos_sat import KubOSSat
 name = "kubos_sat"

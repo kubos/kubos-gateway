@@ -72,5 +72,10 @@ gateway = GatewayAPI(
 logger.debug("Connecting to MajorTom")
 asyncio.ensure_future(gateway.connect_with_retries())
 
+logger.debug("Sending Command Definitions")
+asyncio.ensure_future(gateway.update_command_definitions(
+    system=satellite.name,
+    definitions=satellite.definitions))
+
 logger.debug("Starting Event Loop")
 loop.run_forever()
