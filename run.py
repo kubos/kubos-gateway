@@ -59,13 +59,9 @@ logger.info("Starting up!")
 loop = asyncio.get_event_loop()
 
 logger.debug("Setting up Satellite")
-<<<<<<< HEAD
-satellite = KubOSSat(
+satellite = KubosSat(
     name=args.name,
     sat_config_path=args.sat_config_path)
-=======
-satellite = KubosSat(name=args.name, sat_config_path=args.sat_config_path)
->>>>>>> massive-update
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(
