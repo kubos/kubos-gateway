@@ -7,7 +7,7 @@ import toml
 logger = logging.getLogger(__name__)
 
 
-class KubOSSat:
+class KubosSat:
     def __init__(self, name, sat_config_path):
         self.name = name
         self.sat_config_path = sat_config_path
