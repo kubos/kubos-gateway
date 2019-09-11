@@ -3,7 +3,7 @@ import asyncio
 import time
 import argparse
 from majortom_gateway import GatewayAPI
-from kubos_sat import KubOSSat
+from kubos_sat import KubosSat
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,13 @@ logger.info("Starting up!")
 loop = asyncio.get_event_loop()
 
 logger.debug("Setting up Satellite")
+<<<<<<< HEAD
 satellite = KubOSSat(
     name=args.name,
     sat_config_path=args.sat_config_path)
+=======
+satellite = KubosSat(name=args.name, sat_config_path=args.sat_config_path)
+>>>>>>> massive-update
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(
