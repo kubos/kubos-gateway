@@ -1,0 +1,8 @@
+[sat-config]
+path = "/path/to/KubOS-config.toml"
+
+[file-client]
+binary-path = "/path/to/file-client/binary"
+
+[shell-client]
+binary-path = "/path/to/shell-client/binary"

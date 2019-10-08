@@ -59,7 +59,9 @@ logger.info("Starting up!")
 loop = asyncio.get_event_loop()
 
 logger.debug("Setting up Satellite")
-satellite = KubosSat(name=args.name, sat_config_path=args.sat_config_path)
+satellite = KubosSat(
+    name=args.name,
+    sat_config_path=args.sat_config_path)
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(
@@ -73,6 +75,7 @@ logger.debug("Connecting to MajorTom")
 asyncio.ensure_future(gateway.connect_with_retries())
 
 logger.debug("Sending Command Definitions")
+satellite.build_command_definitions()
 asyncio.ensure_future(gateway.update_command_definitions(
     system=satellite.name,
     definitions=satellite.definitions))
