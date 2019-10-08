@@ -1,6 +1,9 @@
 # Local Gateway Config
 *.local.toml
 
+# Virtual Environment Files
+virtualenv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

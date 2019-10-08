@@ -22,6 +22,9 @@ class KubosSat:
             }
         }
 
+    async def cancel_callback(self, command_id, gateway):
+        asyncio.ensure_future(gateway.cancel_command(command_id=command_id))
+
     async def command_callback(self, command, gateway):
         try:
             if command.type in self.definitions:

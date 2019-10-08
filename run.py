@@ -70,6 +70,7 @@ gateway = GatewayAPI(
     gateway_token=args.gatewaytoken,
     basic_auth=args.basicauth,
     command_callback=satellite.command_callback,
+    cancel_callback=satellite.cancel_callback,
     http=args.http)
 
 logger.debug("Connecting to MajorTom")
