@@ -33,6 +33,7 @@ python3 run.py -h
 ```
 Most users will only need the Major Tom Hostname and Gateway Token.
 Retrieve these from your instance of Major Tom.
+Especially note the BasicAuth option, as some deployments of Major Tom require it.
 
 # Running the Gateway
 To run the Gateway, execute these commands,
