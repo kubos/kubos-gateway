@@ -42,17 +42,17 @@ class KubosSat:
                         command_id=command.id,
                         gateway=gateway)
                 elif command.type == "uplink_file":
-                    asyncio.ensure_future(gateway.complete_command(
+                    asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
-                        output="Command Completed"))
+                        errors=[f"Command not yet implemented"]))
                 elif command.type == "downlink_file":
-                    asyncio.ensure_future(gateway.complete_command(
+                    asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
-                        output="Command Completed"))
+                        errors=[f"Command not yet implemented"]))
                 elif command.type == "shell-command":
-                    asyncio.ensure_future(gateway.complete_command(
+                    asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
-                        output="Command Completed"))
+                        errors=[f"Command not yet implemented"]))
                 elif command.type == "telemetry-autofetch":
                     asyncio.ensure_future(self.autorequest_telemetry(
                         gateway=gateway,
@@ -193,12 +193,21 @@ class KubosSat:
                     graphql=graphql,
                     ip=self.config['telemetry-service']['addr']['ip'],
                     port=self.config['telemetry-service']['addr']['port'])
+            except requests.exceptions.RequestException as e:
+                asyncio.ensure_future(gateway.transmit_events(events=[{
+                    "system": self.name,
+                    "type": "Telemetry Autofetching",
+                    "command_id": command_id,
+                    "level": "error",
+                    "message": f"telemetry-service is not responding. ",
+                    "timestamp": time.time()*1000
+                }]))
+                break
             except Exception as e:
                 asyncio.ensure_future(gateway.transmit_events(events=[{
                     "system": self.name,
                     "type": "Telemetry Autofetching",
                     "command_id": command_id,
-                    "debug": event.get("debug", json.dumps(result)),
                     "level": "error",
                     "message": f"telemetry-service query failed. Error: {traceback.format_exc()}",
                     "timestamp": time.time()*1000
@@ -211,7 +220,7 @@ class KubosSat:
                     "system": self.name,
                     "type": "Telemetry Autofetching",
                     "command_id": command_id,
-                    "debug": event.get("debug", json.dumps(result)),
+                    "debug": json.dumps(result),
                     "level": "warning",
                     "message": "telemetry-service responded with an error. Stopping autofetch.",
                     "timestamp": time.time()*1000
@@ -225,7 +234,7 @@ class KubosSat:
                     "type": "Telemetry Autofetching",
                     "command_id": command_id,
                     "debug": json.dumps(result),
-                    "level": "warning",
+                    "level": "debug",
                     "message": "telemetry-service had no data.",
                     "timestamp": time.time()*1000
                 }]))
