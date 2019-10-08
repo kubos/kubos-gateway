@@ -2,6 +2,7 @@ import logging
 import asyncio
 import time
 import argparse
+import toml
 from majortom_gateway import GatewayAPI
 from kubos_sat import KubosSat
 
@@ -16,9 +17,6 @@ parser.add_argument(
 parser.add_argument(
     "gatewaytoken",
     help='Gateway Token used to authenticate the connection. Look this up in Major Tom under the gateway page for the gateway you are trying to connect.')
-parser.add_argument(
-    "sat_config_path",
-    help="Local path to the KubOS Satellite's config.toml. You'll need to retrieve the file from the satellite.")
 
 # Optional Args and Flags
 parser.add_argument(
@@ -55,13 +53,16 @@ else:
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+logger.debug("Loading Gateway Config")
+gateway_config = toml.load("gateway_config.local.toml")
+
 logger.info("Starting up!")
 loop = asyncio.get_event_loop()
 
 logger.debug("Setting up Satellite")
 satellite = KubosSat(
     name=args.name,
-    sat_config_path=args.sat_config_path)
+    sat_config_path=gateway_config["sat-config"]["path"])
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(
