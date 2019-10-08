@@ -1,2 +1,4 @@
-[sat-config]
-path = "/path/to/KubOS-config.toml"
+[satellite]
+name = "KubOS Sat"
+ip = "ip.of.the.sat"
+config-path = "/path/to/KubOS-config.toml"

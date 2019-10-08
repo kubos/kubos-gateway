@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class KubosSat:
-    def __init__(self, name, sat_config_path):
+    def __init__(self, name, ip, sat_config_path):
         self.name = name
+        self.ip = ip  # IP where KubOS is reachable. Overrides IPs in the config file.
         self.sat_config_path = sat_config_path
         self.config = None
         self.definitions = {
@@ -94,7 +95,7 @@ class KubosSat:
                     "fields": [
                         {"name": "filename", "type": "string"},
                         {"name": "file-service-ip", "type": "string",
-                            "value": self.config[service]["addr"]["ip"]},
+                            "value": self.ip},
                         {"name": "file-service-port", "type": "string",
                             "value": self.config[service]["addr"]["port"]}
                     ]
@@ -105,7 +106,7 @@ class KubosSat:
                     "description": "Command to be executed using the shell service",
                     "fields": [
                         {"name": "ip", "type": "string",
-                            "value": self.config[service]["addr"]["ip"]},
+                            "value": self.ip},
                         {"name": "port", "type": "string",
                             "value": self.config[service]["addr"]["port"]},
                         {"name": "shell-command", "type": "string"}
@@ -117,7 +118,7 @@ class KubosSat:
                     "description": f"GraphQL Request to the {service}",
                     "fields": [
                         {"name": "ip", "type": "string",
-                            "value": self.config[service]["addr"]["ip"]},
+                            "value": self.ip},
                         {"name": "port", "type": "string",
                             "value": self.config[service]["addr"]["port"]},
                         {"name": "graphql", "type": "text", "default": "{ping}"}
@@ -194,7 +195,7 @@ class KubosSat:
             try:
                 result = self.query(
                     graphql=graphql,
-                    ip=self.config['telemetry-service']['addr']['ip'],
+                    ip=self.ip,
                     port=self.config['telemetry-service']['addr']['port'])
             except requests.exceptions.RequestException as e:
                 asyncio.ensure_future(gateway.transmit_events(events=[{

@@ -24,11 +24,6 @@ parser.add_argument(
     '--basicauth',
     help='Basic Authentication credentials. Not required unless BasicAuth is active on the Major Tom instance. Must be in the format "username:password".')
 parser.add_argument(
-    '-N',
-    '--name',
-    default="KubOS Sat",
-    help='Name for the Satellite. Default is "KubOS Sat".')
-parser.add_argument(
     '-l',
     '--loglevel',
     choices=["info", "error"],
@@ -61,8 +56,9 @@ loop = asyncio.get_event_loop()
 
 logger.debug("Setting up Satellite")
 satellite = KubosSat(
-    name=args.name,
-    sat_config_path=gateway_config["sat-config"]["path"])
+    name=gateway_config["satellite"]["name"],
+    ip=gateway_config["satellite"]["ip"],
+    sat_config_path=gateway_config["satellite"]["config-path"])
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(

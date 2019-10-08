@@ -29,7 +29,15 @@ deactivate
 ```
 
 ### Setup Gateway Config File
-Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` and edit it appropriately.
+Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` for local config.
+Here are the required config fields and their description:
+
+- `satellite.name` name of the satellite in Major Tom
+- `satellite.ip` overrides the IP address in the KubOS config toml, and can be one of the following:
+  - The IP of device on your network running KubOS
+  - Localhost for your machine if you're running services locally
+  - The IP of the ground communications services tunneling IP to the spacecraft running KubOS
+- `satellite.config-path` is the path to the KubOS config toml.
 
 ### Retrieve Major Tom Connection Info
 We highly recommend running it with the `-h` flag to see what all command line options are available:
