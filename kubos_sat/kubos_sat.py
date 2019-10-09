@@ -308,7 +308,8 @@ class KubosSat:
                  local_filename,
                  destination_path],
                 capture_output=True)
-            if output.returncode == 0:
+            # Checking stderr is a hack until the client properly implements return codes
+            if output.returncode == 0 and output.stderr == b'':
                 asyncio.ensure_future(gateway.complete_command(
                     command_id=command.id,
                     output=output.stdout.decode('ascii')))
@@ -343,17 +344,19 @@ class KubosSat:
              command.fields["filename"],
              local_filename],
             capture_output=True)
+
+        # os path check is a hack until the file client implements return codes properly.
+        if output.returncode != 0 or not os.path.exists(local_filename):
+            asyncio.ensure_future(gateway.fail_command(
+                command_id=command.id,
+                errors=["File Client failed to transfer the File: ", output.stderr.decode('ascii')]))
+            return
         try:
-            if output.returncode != 0:
-                asyncio.ensure_future(gateway.fail_command(
-                    command_id=command.id,
-                    errors=["File Client failed to transfer the File: ", output.stderr.decode('ascii')]))
-                return
             asyncio.ensure_future(gateway.transmit_command_update(
                 command_id=command.id,
                 state="processing_on_gateway",
                 dict={
-                    "status": f"File: f{command.fields['filename']} successfully Downlinked! Uploading to Major Tom."}))
+                    "status": f"File: {command.fields['filename']} successfully Downlinked! Uploading to Major Tom."}))
             gateway.upload_downlinked_file(
                 filename=command.fields["filename"],
                 filepath=local_filename,
