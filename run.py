@@ -58,7 +58,8 @@ logger.debug("Setting up Satellite")
 satellite = KubosSat(
     name=gateway_config["satellite"]["name"],
     ip=gateway_config["satellite"]["ip"],
-    sat_config_path=gateway_config["satellite"]["config-path"])
+    sat_config_path=gateway_config["satellite"]["config-path"],
+    file_client_path=gateway_config["file-client"]["binary-path"])
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(
@@ -73,7 +74,7 @@ logger.debug("Connecting to MajorTom")
 asyncio.ensure_future(gateway.connect_with_retries())
 
 logger.debug("Sending Command Definitions")
-satellite.build_command_definitions()
+satellite.build_command_definitions(gateway=gateway)
 asyncio.ensure_future(gateway.update_command_definitions(
     system=satellite.name,
     definitions=satellite.definitions))

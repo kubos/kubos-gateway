@@ -5,16 +5,19 @@ import logging
 import toml
 import requests
 import json
+import subprocess
+import os
 
 logger = logging.getLogger(__name__)
 
 
 class KubosSat:
-    def __init__(self, name, ip, sat_config_path):
+    def __init__(self, name, ip, sat_config_path, file_client_path=None):
         self.name = name
         self.ip = ip  # IP where KubOS is reachable. Overrides IPs in the config file.
         self.sat_config_path = sat_config_path
-        self.config = None
+        self.config = toml.load(self.sat_config_path)
+        self.file_client_path = file_client_path
         self.definitions = {
             "command_definitions_update": {
                 "display_name": "Command Definitions Update",
@@ -30,7 +33,7 @@ class KubosSat:
         try:
             if command.type in self.definitions:
                 if command.type == "command_definitions_update":
-                    self.build_command_definitions()
+                    self.build_command_definitions(gateway=gateway)
                     asyncio.ensure_future(gateway.update_command_definitions(
                         system=self.name,
                         definitions=self.definitions))
@@ -46,13 +49,9 @@ class KubosSat:
                         command_id=command.id,
                         gateway=gateway)
                 elif command.type == "uplink_file":
-                    asyncio.ensure_future(gateway.fail_command(
-                        command_id=command.id,
-                        errors=[f"Command not yet implemented"]))
+                    self.uplink_file(gateway=gateway, command=command)
                 elif command.type == "downlink_file":
-                    asyncio.ensure_future(gateway.fail_command(
-                        command_id=command.id,
-                        errors=[f"Command not yet implemented"]))
+                    self.downlink_file(gateway=gateway, command=command)
                 elif command.type == "shell-command":
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
@@ -77,16 +76,31 @@ class KubosSat:
                 command_id=command.id, errors=[
                     "Command Failed to Execute. Unknown Error Occurred.", f"Error: {traceback.format_exc()}"]))
 
-    def build_command_definitions(self):
+    def build_command_definitions(self, gateway):
         """Builds Command Definitions"""
         self.config = toml.load(self.sat_config_path)
         for service in self.config:
             if service == "file-transfer-service":
+                try:
+                    output = subprocess.run([self.file_client_path, "--help"],
+                                            capture_output=True, check=True)
+                except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                    asyncio.ensure_future(gateway.transmit_events(events=[{
+                        "system": self.name,
+                        "type": "File Transfer Client",
+                        "level": "warning",
+                        "message": "File transfer client binary experienced an error, please verify it's built and in the location specified in the local gateway config."
+                    }]))
+                    logger.error(f"Error reading file client binary: {type(e)} {e.args}")
+                    continue
+
                 self.definitions["uplink_file"] = {
                     "display_name": "Uplink File",
-                    "description": "Uplink a staged file to the spacecraft.",
+                    "description": "Uplink a staged file to the spacecraft. Leave destination_name empty to keep the same name.",
                     "fields": [
-                        {"name": "gateway_download_path", "type": "string"}
+                        {"name": "gateway_download_path", "type": "string"},
+                        {"name": "destination_directory", "type": "string", "default": "/home/kubos/"},
+                        {"name": "destination_name", "type": "string"}
                     ]
                 }
                 self.definitions["downlink_file"] = {
@@ -101,17 +115,7 @@ class KubosSat:
                     ]
                 }
             elif service == "shell-service":
-                self.definitions["shell-command"] = {
-                    "display_name": "Shell Service Command",
-                    "description": "Command to be executed using the shell service",
-                    "fields": [
-                        {"name": "ip", "type": "string",
-                            "value": self.ip},
-                        {"name": "port", "type": "string",
-                            "value": self.config[service]["addr"]["port"]},
-                        {"name": "shell-command", "type": "string"}
-                    ]
-                }
+                continue
             else:
                 self.definitions[service] = {
                     "display_name": service,
@@ -230,6 +234,13 @@ class KubosSat:
                     "timestamp": time.time()*1000
                 }]))
                 break
+            else:
+                # We successfully talked to the service, so add a metric that reflects that.
+                metrics = [{
+                    "system": self.name,
+                    "subsystem": "status",
+                    "metric": "connected",
+                    "value": 1}]
 
             # Check that there is telemetry present
             if result['data']['telemetry'] == []:
@@ -242,10 +253,15 @@ class KubosSat:
                     "message": "telemetry-service had no data.",
                     "timestamp": time.time()*1000
                 }]))
-            else:
-                # Submit Telemetry
-                for measurement in result['data']['telemetry']:
-                    pass
+            # Submit Telemetry
+            for measurement in result['data']['telemetry']:
+                metrics.append({
+                    "system": self.name,
+                    "subsystem": "status",
+                    "metric": "connected",
+                    "value": 1
+                })
+            asyncio.ensure_future(gateway.transmit_metrics(metrics=metrics))
 
             # Wait for next iteration
             await asyncio.sleep(period_sec)
@@ -253,3 +269,100 @@ class KubosSat:
             # Check if duration has elapsed
             if (time.time() - start_time) >= duration_sec:
                 break
+
+    def uplink_file(self, gateway, command):
+        logger.debug("Downloading file from Major Tom")
+        asyncio.ensure_future(gateway.transmit_command_update(
+            command_id=command.id,
+            state="processing_on_gateway",
+            dict={
+                "status": "Downloading Staged File from Major Tom for Transmission"}))
+        local_filename, content = gateway.download_staged_file(
+            gateway_download_path=command.fields["gateway_download_path"])
+        logger.debug(f'Writing file: "{local_filename}" locally')
+        asyncio.ensure_future(gateway.transmit_command_update(
+            command_id=command.id,
+            state="processing_on_gateway",
+            dict={
+                "status": f"Writing file: {local_filename} locally"}))
+        with open(local_filename, "wb") as f:
+            f.write(content)
+        try:
+            if command.fields["destination_name"] == "":
+                destination_name = local_filename
+            else:
+                destination_name = command.fields["destination_name"]
+            destination_path = command.fields["destination_directory"] + destination_name
+            asyncio.ensure_future(gateway.transmit_command_update(
+                command_id=command.id,
+                state="uplinking_to_system",
+                dict={
+                    "status": f"Uploading {local_filename} to {destination_path} on satellite."}))
+            output = subprocess.run(
+                [self.file_client_path,
+                 "-h", self.config["file-transfer-service"]["downlink_ip"],
+                 "-P", str(self.config["file-transfer-service"]["downlink_port"]),
+                 "-r", self.ip,
+                 "-p", str(self.config["file-transfer-service"]["addr"]["port"]),
+                 "upload",
+                 local_filename,
+                 destination_path],
+                capture_output=True)
+            if output.returncode == 0:
+                asyncio.ensure_future(gateway.complete_command(
+                    command_id=command.id,
+                    output=output.stdout.decode('ascii')))
+            else:
+                asyncio.ensure_future(gateway.fail_command(
+                    command_id=command.id,
+                    errors=["File Client failed to transfer the File: ", output.stderr.decode('ascii')]))
+        finally:
+            logger.debug(f"Deleting local file: {local_filename}")
+            os.remove(local_filename)
+
+    def downlink_file(self, gateway, command):
+        local_filename = "tempfile.tmp"
+        if command.fields["filename"] == '':
+            asyncio.ensure_future(gateway.fail_command(
+                command_id=command.id,
+                errors=["filename cannot be empty"]))
+            return
+
+        asyncio.ensure_future(gateway.transmit_command_update(
+            command_id=command.id,
+            state="downlinking_from_system",
+            dict={
+                "status": f"Downlinking file: {command.fields['filename']}"}))
+        output = subprocess.run(
+            [self.file_client_path,
+             "-h", self.config["file-transfer-service"]["downlink_ip"],
+             "-P", str(self.config["file-transfer-service"]["downlink_port"]),
+             "-r", self.ip,
+             "-p", str(self.config["file-transfer-service"]["addr"]["port"]),
+             "download",
+             command.fields["filename"],
+             local_filename],
+            capture_output=True)
+        try:
+            if output.returncode != 0:
+                asyncio.ensure_future(gateway.fail_command(
+                    command_id=command.id,
+                    errors=["File Client failed to transfer the File: ", output.stderr.decode('ascii')]))
+                return
+            asyncio.ensure_future(gateway.transmit_command_update(
+                command_id=command.id,
+                state="processing_on_gateway",
+                dict={
+                    "status": f"File: f{command.fields['filename']} successfully Downlinked! Uploading to Major Tom."}))
+            gateway.upload_downlinked_file(
+                filename=command.fields["filename"],
+                filepath=local_filename,
+                system=self.name,
+                timestamp=time.time()*1000,
+                command_id=command.id,
+                metadata=None)
+            asyncio.ensure_future(gateway.complete_command(
+                command_id=command.id,
+                output=f'Downlinked File: {command.fields["filename"]} Uploaded to Major Tom.'))
+        finally:
+            os.remove(local_filename)
