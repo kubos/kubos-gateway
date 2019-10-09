@@ -105,7 +105,7 @@ class KubosSat:
                 }
                 self.definitions["downlink_file"] = {
                     "display_name": "Downlink File",
-                    "description": "Downlink an image from the Spacecraft.",
+                    "description": "Downlink a file from the Spacecraft. The full path of the file must be in the filename.",
                     "fields": [
                         {"name": "filename", "type": "string"},
                         {"name": "file-service-ip", "type": "string",
