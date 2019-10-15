@@ -17,10 +17,11 @@ We will be using `python3` in the examples.
 Assuming you have the Gateway files on your machine, you'll need to run the following commands from the base folder of the Gateway:
 
 ```shell
+sudo apt-get install python3-venv
 pip3 install virtualenv
 python3 -m venv virtualenv
 source virtualenv/bin/activate
-pip3 install --upgrade -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 *Note:* deactivate the virtualenv by running:
@@ -29,7 +30,8 @@ deactivate
 ```
 
 ### Setup Gateway Config File
-Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` for local config.
+Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` for local config
+and then update the file to match your system settings.
 Here are the required config fields and their description:
 
 - `satellite.name` name of the satellite in Major Tom
@@ -37,16 +39,25 @@ Here are the required config fields and their description:
   - The IP of device on your network running KubOS
   - Localhost for your machine if you're running services locally
   - The IP of the ground communications services tunneling IP to the spacecraft running KubOS
-- `satellite.config-path` is the path to the KubOS config toml.
+- `satellite.config-path` is the *local* path to the KubOS config `toml` matching the KubOS system you are attempting to communicate with.
+  - To retrieve from the spacecraft, it is typically located at: `/etc/kubos-config.toml`
+  - You can also use the [example in the kubos repo](https://github.com/kubos/kubos/blob/master/tools/local_config.toml), located at: `$kubos-repo/tools/local_config.toml`
 
 ### Retrieve Major Tom Connection Info
-We highly recommend running it with the `-h` flag to see what all command line options are available:
+We highly recommend running the gateway (`run.py` file) with the `-h` flag to see what all command line options are available:
 ```shell
+source virtualenv/bin/activate
 python3 run.py -h
 ```
-Most users will only need the Major Tom Hostname and Gateway Token.
+Most users will only need the Major Tom Hostname and Gateway Authentication Token.
+The Major Tom Hostname is the URL or IP you enter to access Major Tom (eg: app.majortom.cloud).
+The Gateway Authentication Token is found by logging in to Major Tom and opening the page of the Gateway you wish to connect to:
+
+![Gateway Page](doc-images/gateway_page.png "Gateway Page in Major Tom")
+
 Retrieve these from your instance of Major Tom.
-Especially note the BasicAuth option, as some deployments of Major Tom require it.
+If your deployment of Major Tom requires a BasicAuth login before your user login,
+you'll also need to provide those credentials to the gateway with the `-b` optional argument.
 
 # Running the Gateway
 To run the Gateway, execute these commands,
