@@ -18,7 +18,6 @@ Assuming you have the Gateway files on your machine, you'll need to run the foll
 
 ```shell
 sudo apt-get install python3-venv
-pip3 install virtualenv
 python3 -m venv virtualenv
 source virtualenv/bin/activate
 pip3 install -r requirements.txt
