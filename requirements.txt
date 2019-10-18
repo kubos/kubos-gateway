@@ -1,4 +1,4 @@
 websockets
 requests
 toml
-majortom-gateway
+majortom-gateway >= 0.0.5
