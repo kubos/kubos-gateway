@@ -59,7 +59,8 @@ satellite = KubosSat(
     name=gateway_config["satellite"]["name"],
     ip=gateway_config["satellite"]["ip"],
     sat_config_path=gateway_config["satellite"]["config-path"],
-    file_client_path=gateway_config["file-client"]["binary-path"])
+    file_client_path=gateway_config["file-client"]["binary-path"],
+    shell_client_path=gateway_config["shell-client"]["binary-path"])
 
 logger.debug("Setting up MajorTom")
 gateway = GatewayAPI(

@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class KubosSat:
-    def __init__(self, name, ip, sat_config_path, file_client_path=None):
+    def __init__(self, name, ip, sat_config_path, file_client_path=None, shell_client_path=None):
         self.name = name
         self.ip = ip  # IP where KubOS is reachable. Overrides IPs in the config file.
         self.sat_config_path = sat_config_path
         self.config = toml.load(self.sat_config_path)
         self.file_client_path = file_client_path
+        self.shell_client_path = shell_client_path
         self.definitions = {
             "command_definitions_update": {
                 "display_name": "Command Definitions Update",
@@ -62,6 +63,8 @@ class KubosSat:
                         period_sec=command.fields["period"],
                         duration_sec=command.fields["duration"],
                         command_id=command.id))
+                elif command.type == "update_file_list":
+                    self.update_file_list(gate)
                 else:
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
@@ -81,6 +84,15 @@ class KubosSat:
         self.config = toml.load(self.sat_config_path)
         for service in self.config:
             if service == "file-transfer-service":
+                if self.file_client_path is None:
+                    asyncio.ensure_future(gateway.transmit_events(events=[{
+                        "system": self.name,
+                        "type": "File Transfer Client",
+                        "level": "warning",
+                        "message": "No file transfer client binary defined. Please verify it's built and in the location specified in the local gateway config."
+                    }]))
+                    logger.warning("No file transfer client binary defined.")
+                    continue
                 try:
                     output = subprocess.run([self.file_client_path, "--help"],
                                             capture_output=True, check=True)
@@ -97,15 +109,21 @@ class KubosSat:
                 self.definitions["uplink_file"] = {
                     "display_name": "Uplink File",
                     "description": "Uplink a staged file to the spacecraft. Leave destination_name empty to keep the same name.",
+                    "tags": ["File Transfer"],
                     "fields": [
-                        {"name": "gateway_download_path", "type": "string"},
                         {"name": "destination_directory", "type": "string", "default": "/home/kubos/"},
-                        {"name": "destination_name", "type": "string"}
+                        {"name": "destination_name", "type": "string"},
+                        {"name": "file-service-ip", "type": "string",
+                            "value": self.ip},
+                        {"name": "file-service-port", "type": "string",
+                            "value": self.config[service]["addr"]["port"]},
+                        {"name": "gateway_download_path", "type": "string"}
                     ]
                 }
                 self.definitions["downlink_file"] = {
                     "display_name": "Downlink File",
                     "description": "Downlink a file from the Spacecraft. The full path of the file must be in the filename.",
+                    "tags": ["File Transfer"],
                     "fields": [
                         {"name": "filename", "type": "string"},
                         {"name": "file-service-ip", "type": "string",
@@ -115,11 +133,45 @@ class KubosSat:
                     ]
                 }
             elif service == "shell-service":
-                continue
+                if self.shell_client_path is None:
+                    asyncio.ensure_future(gateway.transmit_events(events=[{
+                        "system": self.name,
+                        "type": "Shell Service Client",
+                        "level": "warning",
+                        "message": "No shell service client binary defined. Please verify it's built and in the location specified in the local gateway config."
+                    }]))
+                    logger.warning("No shell service client binary defined.")
+                    continue
+                try:
+                    output = subprocess.run([self.shell_client_path, "--help"],
+                                            capture_output=True, check=True)
+                except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                    asyncio.ensure_future(gateway.transmit_events(events=[{
+                        "system": self.name,
+                        "type": "Shell Service Client",
+                        "level": "warning",
+                        "message": "Shell Service client binary experienced an error, please verify it's built and in the location specified in the local gateway config."
+                    }]))
+                    logger.error(f"Error reading file client binary: {type(e)} {e.args}")
+                    continue
+                self.definitions["update_file_list"] = {
+                    "display_name": "Update File List",
+                    "description": "Update the list of files in common KubOS downlink Directories using the KubOS Shell Service",
+                    "tags": ["File Transfer"],
+                    "fields": [
+                        {"name": "directory_to_update", "type": "string", "default": "all",
+                            "range": ["all", "/var/log/", "/Users/jessecoffey/Workspace/misc/"]},  # Other directories to test: "/home/kubos/", "/upgrade/"
+                        {"name": "shell-service-ip", "type": "string",
+                            "value": self.ip},
+                        {"name": "shell-service-port", "type": "string",
+                            "value": self.config[service]["addr"]["port"]}
+                    ]
+                }
             else:
                 self.definitions[service] = {
                     "display_name": service,
                     "description": f"GraphQL Request to the {service}",
+                    "tags": ["Raw GraphQL"],
                     "fields": [
                         {"name": "ip", "type": "string",
                             "value": self.ip},
@@ -132,6 +184,7 @@ class KubosSat:
                 self.definitions["telemetry-autofetch"] = {
                     "display_name": "Autofetch Telemetry",
                     "description": "Automatically requests the most recent telemetry from the Telemetry Database Service",
+                    "tags": ["development"],
                     "fields": [
                         {"name": "period", "type": "integer", "default": 10},
                         {"name": "duration", "type": "integer", "default": 300}
@@ -369,3 +422,8 @@ class KubosSat:
                 output=f'Downlinked File: {command.fields["filename"]} Uploaded to Major Tom.'))
         finally:
             os.remove(local_filename)
+
+    def update_file_list(self, gateway, command):
+        asyncio.ensure_future(gateway.fail_command(
+            command_id=command.id,
+            errors=["Update File List command is not yet implemented."]))
