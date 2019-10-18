@@ -1,3 +1,4 @@
-git+git://github.com/aaugustin/websockets@7.0#egg=websockets
-aiohttp
+websockets
+requests
 toml
+majortom-gateway >= 0.0.5
