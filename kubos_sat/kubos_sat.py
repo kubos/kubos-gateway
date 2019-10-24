@@ -507,4 +507,4 @@ class KubosSat:
         asyncio.ensure_future(gateway.update_file_list(system=self.name, files=files))
         asyncio.ensure_future(gateway.complete_command(
             command_id=command.id,
-            output="file list updated"))
+            output=f"File list updated with {len(files)} files from directories: {directories}"))
