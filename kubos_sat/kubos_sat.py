@@ -194,16 +194,6 @@ class KubosSat:
                         {"name": "graphql", "type": "text", "default": "{ping}"}
                     ]
                 }
-            if service == "telemetry-service":
-                self.definitions["telemetry-autofetch"] = {
-                    "display_name": "Autofetch Telemetry",
-                    "description": "Automatically requests the most recent telemetry from the Telemetry Database Service",
-                    "tags": ["development"],
-                    "fields": [
-                        {"name": "period", "type": "integer", "default": 10},
-                        {"name": "duration", "type": "integer", "default": 300}
-                    ]
-                }
 
     def graphql_command(self, graphql, ip, port, gateway, command_id):
         """GraphQL Request Command"""
@@ -233,109 +223,6 @@ class KubosSat:
         json_result = request.json()
         logger.debug(json.dumps(json_result, indent=2))
         return json_result
-
-    async def autorequest_telemetry(self, gateway, period_sec, duration_sec, command_id=None):
-        if period_sec >= duration_sec:
-            raise ValueError("Duration must be longer than the period.")
-
-        if "telemetry-service" not in self.definitions:
-            logger.error("telemetry-service is not present.")
-            if command_id:
-                asyncio.ensure_future(gateway.fail_command(
-                    command_id=command_id,
-                    errors=["telemetry-service is not present on the system"]))
-            return
-
-        start_time = time.time()
-        if command_id:
-            asyncio.ensure_future(gateway.complete_command(
-                command_id=command_id,
-                output="Telemetry Autofetch Started"))
-        while True:
-            # Make the Query
-            graphql = """
-                {telemetry (timestampGe:%d){
-                  timestamp
-                  subsystem
-                  parameter
-                  value
-                }}
-            """ % (time.time()-period_sec)  # TODO: Change this to milliseconds when we update the tlm service
-
-            # Retrieve Telemetry
-            try:
-                result = self.query(
-                    graphql=graphql,
-                    ip=self.ip,
-                    port=self.config['telemetry-service']['addr']['port'])
-            except requests.exceptions.RequestException as e:
-                asyncio.ensure_future(gateway.transmit_events(events=[{
-                    "system": self.name,
-                    "type": "Telemetry Autofetching",
-                    "command_id": command_id,
-                    "level": "error",
-                    "message": f"telemetry-service is not responding. ",
-                    "timestamp": time.time()*1000
-                }]))
-                break
-            except Exception as e:
-                asyncio.ensure_future(gateway.transmit_events(events=[{
-                    "system": self.name,
-                    "type": "Telemetry Autofetching",
-                    "command_id": command_id,
-                    "level": "error",
-                    "message": f"telemetry-service query failed. Error: {traceback.format_exc()}",
-                    "timestamp": time.time()*1000
-                }]))
-                break
-
-            # Check that it completed successfully
-            if 'errors' in result:
-                asyncio.ensure_future(gateway.transmit_events(events=[{
-                    "system": self.name,
-                    "type": "Telemetry Autofetching",
-                    "command_id": command_id,
-                    "debug": json.dumps(result),
-                    "level": "warning",
-                    "message": "telemetry-service responded with an error. Stopping autofetch.",
-                    "timestamp": time.time()*1000
-                }]))
-                break
-            else:
-                # We successfully talked to the service, so add a metric that reflects that.
-                metrics = [{
-                    "system": self.name,
-                    "subsystem": "status",
-                    "metric": "connected",
-                    "value": 1}]
-
-            # Check that there is telemetry present
-            if result['data']['telemetry'] == []:
-                asyncio.ensure_future(gateway.transmit_events(events=[{
-                    "system": self.name,
-                    "type": "Telemetry Autofetching",
-                    "command_id": command_id,
-                    "debug": json.dumps(result),
-                    "level": "debug",
-                    "message": "telemetry-service had no data.",
-                    "timestamp": time.time()*1000
-                }]))
-            # Submit Telemetry
-            for measurement in result['data']['telemetry']:
-                metrics.append({
-                    "system": self.name,
-                    "subsystem": "status",
-                    "metric": "connected",
-                    "value": 1
-                })
-            asyncio.ensure_future(gateway.transmit_metrics(metrics=metrics))
-
-            # Wait for next iteration
-            await asyncio.sleep(period_sec)
-
-            # Check if duration has elapsed
-            if (time.time() - start_time) >= duration_sec:
-                break
 
     def uplink_file(self, gateway, command):
         logger.debug("Downloading file from Major Tom")
