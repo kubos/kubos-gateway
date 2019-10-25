@@ -36,8 +36,8 @@ Instructions for building the clients:
   1. Clone [KubOS repository](https://github.com/kubos/kubos/) locally.
   1. Navigate to the base directory of the repository (we'll refer to it at the `kubos` directory)
   1. From that directory, run `cargo build --bin kubos-{SERVICE}-client`, for example:
-    - `cargo build --bin kubos-file-client`
-    - `cargo build --bin kubos-shell-client`
+    1. `cargo build --bin kubos-file-client`
+    1. `cargo build --bin kubos-shell-client`
   1. That will place the client binary here: `kubos/target/debug/kubos-{SERVICE}-client`. Leave the client binary there or move it to a location of your choice for the gateway to access. You'll need the full path for the next section.
 
 ### Setup Gateway Config File
