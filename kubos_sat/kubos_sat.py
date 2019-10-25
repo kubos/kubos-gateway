@@ -131,8 +131,8 @@ class KubosSat:
                         f"Shell Service client binary experienced an error, please verify it's built and in the location specified in the local gateway config. Error: {type(e)} {e.args}")
                     continue
                 if self.file_list_directories is None:
-                    logger.warning(
-                        "File List Directories are undefined. To request a file list from the satellite, please specify the directories on the system you wish view in the local gateway config.")
+                    logger.info(
+                        "File List Directories are undefined. Skipping command definitions that require file list directories to resolve.")
                     continue
 
                 # Allows "all directories" as an option
