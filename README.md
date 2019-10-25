@@ -33,14 +33,14 @@ The KubOS gateway requires the shell and file clients to interact with their res
 You need to build these clients and save them locally for the gateway to use.
 Instructions for building the clients:
 
-  1. Clone [KubOS repository](https://github.com/kubos/kubos/) locally.
-  1. Navigate to the base directory of the repository (we'll refer to it at the `kubos` directory)
-  1. From that directory, run `cargo build --bin kubos-{SERVICE}-client`, for example:
-    ```shell
-    cargo build --bin kubos-file-client
-    cargo build --bin kubos-shell-client
-    ```
-  1. That will place the client binary here: `kubos/target/debug/kubos-{SERVICE}-client`. Leave the client binary there or move it to a location of your choice for the gateway to access. You'll need the full path for the next section.
+- Clone [KubOS repository](https://github.com/kubos/kubos/) locally.
+- Navigate to the base directory of the repository (we'll refer to it at the `kubos` directory)
+- From that directory, run `cargo build --bin kubos-{SERVICE}-client`, for example:
+  - `cargo build --bin kubos-file-client`
+  - `cargo build --bin kubos-shell-client`
+- That will place the client binary here: `kubos/target/debug/kubos-{SERVICE}-client`.
+Leave the client binary there or move it to a location of your choice for the gateway to access.
+You'll need the full path for the next section.
 
 ### Setup Gateway Config File
 Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` for local config
