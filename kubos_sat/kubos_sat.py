@@ -36,7 +36,7 @@ class KubosSat:
         try:
             if command.type in self.definitions:
                 if command.type == "command_definitions_update":
-                    self.build_command_definitions(gateway=gateway)
+                    self.build_command_definitions()
                     asyncio.ensure_future(gateway.update_command_definitions(
                         system=self.name,
                         definitions=self.definitions))
@@ -75,31 +75,21 @@ class KubosSat:
                 command_id=command.id, errors=[
                     "Command Failed to Execute. Unknown Error Occurred.", f"Error: {traceback.format_exc()}"]))
 
-    def build_command_definitions(self, gateway):
+    def build_command_definitions(self):
         """Builds Command Definitions"""
         self.config = toml.load(self.sat_config_path)
         for service in self.config:
             if service == "file-transfer-service":
                 if self.file_client_path is None:
-                    asyncio.ensure_future(gateway.transmit_events(events=[{
-                        "system": self.name,
-                        "type": "File Transfer Client",
-                        "level": "warning",
-                        "message": "No file transfer client binary defined. Please verify it's built and in the location specified in the local gateway config."
-                    }]))
-                    logger.warning("No file transfer client binary defined.")
+                    logger.info(
+                        "No file transfer client binary defined. Skipping command definitions that require the file client to resolve.")
                     continue
                 try:
                     output = subprocess.run([self.file_client_path, "--help"],
                                             capture_output=True, check=True)
                 except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    asyncio.ensure_future(gateway.transmit_events(events=[{
-                        "system": self.name,
-                        "type": "File Transfer Client",
-                        "level": "warning",
-                        "message": "File transfer client binary experienced an error, please verify it's built and in the location specified in the local gateway config."
-                    }]))
-                    logger.error(f"Error reading file client binary: {type(e)} {e.args}")
+                    logger.error(
+                        f"Error reading file client binary: {type(e)} {e.args}  \nPlease verify it's built and in the location specified in the local gateway config.")
                     continue
 
                 self.definitions["uplink_file"] = {
@@ -130,33 +120,19 @@ class KubosSat:
                 }
             elif service == "shell-service":
                 if self.shell_client_path is None:
-                    asyncio.ensure_future(gateway.transmit_events(events=[{
-                        "system": self.name,
-                        "type": "Shell Service Client",
-                        "level": "warning",
-                        "message": "No shell service client binary defined. Please verify it's built and in the location specified in the local gateway config."
-                    }]))
-                    logger.warning("No shell service client binary defined.")
+                    logger.info(
+                        "No shell service client binary defined. Skipping command definitions that require the shell client to resolve.")
                     continue
                 try:
                     output = subprocess.run([self.shell_client_path, "--help"],
                                             capture_output=True, check=True)
                 except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    asyncio.ensure_future(gateway.transmit_events(events=[{
-                        "system": self.name,
-                        "type": "Shell Service Client",
-                        "level": "warning",
-                        "message": "Shell Service client binary experienced an error, please verify it's built and in the location specified in the local gateway config."
-                    }]))
-                    logger.error(f"Error reading file client binary: {type(e)} {e.args}")
+                    logger.error(
+                        f"Shell Service client binary experienced an error, please verify it's built and in the location specified in the local gateway config. Error: {type(e)} {e.args}")
                     continue
                 if self.file_list_directories is None:
-                    asyncio.ensure_future(gateway.transmit_events(events=[{
-                        "system": self.name,
-                        "type": "File List Command Definition",
-                        "level": "warning",
-                        "message": "File List Directories are undefined. To view the File List for this system in the Downlink Tab, please specify the directories on the system you wish view in the local gateway config."
-                    }]))
+                    logger.warning(
+                        "File List Directories are undefined. To request a file list from the satellite, please specify the directories on the system you wish view in the local gateway config.")
                     continue
 
                 # Allows "all directories" as an option
@@ -167,7 +143,7 @@ class KubosSat:
                     "description": "Update the list of files in common KubOS downlink Directories using the KubOS Shell Service",
                     "tags": ["File Transfer"],
                     "fields": [
-                        {"name": "directory_to_update", "type": "string",
+                        {"name": "directory_to_update", "type": "string", "default": "all directories",
                             "range": file_list_directories},
                         {"name": "shell-service-ip", "type": "string",
                             "value": self.ip},

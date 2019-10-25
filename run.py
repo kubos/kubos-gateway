@@ -76,7 +76,7 @@ logger.debug("Connecting to MajorTom")
 asyncio.ensure_future(gateway.connect_with_retries())
 
 logger.debug("Sending Command Definitions")
-satellite.build_command_definitions(gateway=gateway)
+satellite.build_command_definitions()
 asyncio.ensure_future(gateway.update_command_definitions(
     system=satellite.name,
     definitions=satellite.definitions))
