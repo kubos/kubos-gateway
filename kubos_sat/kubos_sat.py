@@ -59,12 +59,6 @@ class KubosSat:
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
                         errors=[f"Command not yet implemented"]))
-                elif command.type == "telemetry-autofetch":
-                    asyncio.ensure_future(self.autorequest_telemetry(
-                        gateway=gateway,
-                        period_sec=command.fields["period"],
-                        duration_sec=command.fields["duration"],
-                        command_id=command.id))
                 elif command.type == "update_file_list":
                     self.update_file_list(gateway=gateway, command=command)
                 else:
