@@ -8,7 +8,7 @@ import json
 import subprocess
 import os
 import datetime
-import tempfile
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +247,7 @@ class KubosSat:
             os.remove(local_filename)
 
     def downlink_file(self, gateway, command):
-        local_filename = "tempfile.tmp"
+        local_filename = f"tempfile{str(uuid.uuid4())}.tmp"
         if command.fields["filename"].strip() == '':
             asyncio.ensure_future(gateway.fail_command(
                 command_id=command.id,
