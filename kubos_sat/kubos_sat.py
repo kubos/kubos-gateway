@@ -8,6 +8,7 @@ import json
 import subprocess
 import os
 import datetime
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class KubosSat:
         for service in self.config:
             if service == "file-transfer-service":
                 if self.file_client_path is None:
-                    logger.info(
+                    logger.warn(
                         "No file transfer client binary defined. Skipping command definitions that require the file client to resolve.")
                     continue
                 try:
@@ -120,7 +121,7 @@ class KubosSat:
                 }
             elif service == "shell-service":
                 if self.shell_client_path is None:
-                    logger.info(
+                    logger.warn(
                         "No shell service client binary defined. Skipping command definitions that require the shell client to resolve.")
                     continue
                 try:
@@ -131,7 +132,7 @@ class KubosSat:
                         f"Shell Service client binary experienced an error, please verify it's built and in the location specified in the local gateway config. Error: {type(e)} {e.args}")
                     continue
                 if self.file_list_directories is None:
-                    logger.info(
+                    logger.warn(
                         "File List Directories are undefined. Skipping command definitions that require file list directories to resolve.")
                     continue
 
@@ -247,7 +248,7 @@ class KubosSat:
 
     def downlink_file(self, gateway, command):
         local_filename = "tempfile.tmp"
-        if command.fields["filename"] == '':
+        if command.fields["filename"].strip() == '':
             asyncio.ensure_future(gateway.fail_command(
                 command_id=command.id,
                 errors=["filename cannot be empty"]))
@@ -269,8 +270,10 @@ class KubosSat:
              local_filename],
             capture_output=True)
 
+        logger.debug(output.stdout.decode("ascii"))
+
         # os path check is a hack until the file client implements return codes properly.
-        if output.returncode != 0 or not os.path.exists(local_filename):
+        if output.returncode != 0 or not os.path.isfile(local_filename):
             asyncio.ensure_future(gateway.fail_command(
                 command_id=command.id,
                 errors=["File Client failed to transfer the File: ", output.stderr.decode('ascii')]))
@@ -311,7 +314,7 @@ class KubosSat:
 
             file_output = output.stdout.decode("ascii")
 
-            print(output.stdout.decode("ascii"))
+            logger.debug(output.stdout.decode("ascii"))
 
             # Each line is a line of output from the command response
             output_list = file_output.split('\n')
