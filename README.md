@@ -28,19 +28,40 @@ pip3 install -r requirements.txt
 deactivate
 ```
 
+### Build Client Binaries:
+The KubOS gateway requires the shell and file clients to interact with their respective KubOS services.
+You need to build these clients and save them locally for the gateway to use.
+Instructions for building the clients:
+
+- Clone [KubOS repository](https://github.com/kubos/kubos/) locally.
+- Navigate to the base directory of the repository (we'll refer to it at the `kubos` directory)
+- From that directory, run `cargo build --release --bin kubos-{SERVICE}-client`, for example:
+  - `cargo build --release --bin kubos-file-client`
+  - `cargo build --release --bin kubos-shell-client`
+- That will place the client binary here: `kubos/target/release/kubos-{SERVICE}-client`.
+Leave the client binary there or move it to a location of your choice for the gateway to access.
+You'll need the full path for the next section.
+
 ### Setup Gateway Config File
 Copy the contents of the `gateway_config.toml` into a new file titled `gateway_config.local.toml` for local config
 and then update the file to match your system settings.
 Here are the required config fields and their description:
 
-- `satellite.name` name of the satellite in Major Tom
-- `satellite.ip` overrides the IP address in the KubOS config toml, and can be one of the following:
-  - The IP of device on your network running KubOS
-  - Localhost for your machine if you're running services locally
-  - The IP of the ground communications services tunneling IP to the spacecraft running KubOS
-- `satellite.config-path` is the *local* path to the KubOS config `toml` matching the KubOS system you are attempting to communicate with.
-  - To retrieve from the spacecraft, it is typically located at: `/etc/kubos-config.toml`
-  - You can also use the [example in the kubos repo](https://github.com/kubos/kubos/blob/master/tools/local_config.toml), located at: `$kubos-repo/tools/local_config.toml`
+- `satellite`:
+  - `name` name of the satellite in Major Tom
+  - `ip` overrides the IP address in the KubOS config toml, and can be one of the following:
+    - The IP of device on your network running KubOS
+    - Localhost for your machine if you're running services locally
+    - The IP of the ground communications services tunneling IP to the spacecraft running KubOS
+  - `config-path` is the *local* path to the KubOS config `toml` matching the KubOS system you are attempting to communicate with.
+    - To retrieve from the spacecraft, it is typically located at: `/etc/kubos-config.toml`
+    - You can also use the [example in the kubos repo](https://github.com/kubos/kubos/blob/master/tools/local_config.toml), located at: `$kubos-repo/tools/local_config.toml`
+  - `file-list-directories`is an array of directories you want to retrieve the contents of for potential downlink or just viewing in Major Tom.
+    - The directories in the `gateway_config.toml` are the ones we suggest will be most useful to retrieve from KubOS, feel free to add/remove as needed.
+- `client-binaries`: Paths to the clients built in the previous section.
+  - `file-client` local path on your machine to the built file client binary from the KubOS repository.
+  - `shell-client` local path on your machine to the built shell client binary from the KubOS repository.
+
 
 ### Retrieve Major Tom Connection Info
 We highly recommend running the gateway (`run.py` file) with the `-h` flag to see what all command line options are available:
@@ -77,3 +98,14 @@ After running the gateway, you can deactivate the virtualenv by running:
 ```shell
 deactivate
 ```
+
+# Using the Gateway
+This section is still in progress, and will be expanded with future releases of the KubOS gateway.
+If you have any questions on how to use the gateway and how to interact with KubOS,
+we recommend you come [talk to us on Slack!](https://slack.kubos.com)
+Until we expand this section further,
+we recommend looking at the commands that become available in Major Tom when you connect the gateway,
+as it will automatically upload all commands it supports.
+
+# Feedback
+Please feel free to [open issues](https://github.com/kubos/kubos-gateway/issues) or email us at open-source@kubos.com to report bugs or request new features!

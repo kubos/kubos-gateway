@@ -2,3 +2,8 @@
 name = "KubOS Sat"
 ip = "ip.of.the.sat"
 config-path = "/path/to/KubOS-config.toml"
+file-list-directories = ["/home/kubos/", "/var/log/", "/upgrade/", "/home/system/usr/bin/","/home/system/etc/init.d/"]
+
+[client-binaries]
+file-client = "/path/to/kubos-file-client/binary"
+shell-client = "/path/to/kubos-shell-client/binary"
