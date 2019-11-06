@@ -3,20 +3,20 @@ import time
 import traceback
 import logging
 import toml
-import requests
 import json
 import subprocess
 import os
 import datetime
 import uuid
-from kubos_sat.file_commands import FileCommands
-from kubos_sat.build_command_definitions import BuildCommandDefinitions
+from kubos_sat import file_commands
+from kubos_sat import build_command_definitions
+from kubos_sat import graphql_commands
 
 logger = logging.getLogger(__name__)
 
 
 class KubosSat:
-    def __init__(self, name, ip, sat_config_path, file_client_path=None, shell_client_path=None, file_list_directories=None):
+    def __init__(self, name, ip, sat_config_path, file_client_path=None, shell_client_path=None, file_list_directories=None, default_uplink_dir="/home/kubos/"):
         self.name = name
         self.ip = ip  # IP where KubOS is reachable. Overrides IPs in the config file.
         self.sat_config_path = sat_config_path
@@ -31,8 +31,7 @@ class KubosSat:
             }
         }
         self.file_list_directories = file_list_directories
-        self.file_commands = FileCommands(self)
-        self.command_builder = BuildCommandDefinitions(self)
+        self.default_uplink_dir = default_uplink_dir
 
     async def cancel_callback(self, command_id, gateway):
         asyncio.ensure_future(gateway.cancel_command(command_id=command_id))
@@ -41,7 +40,7 @@ class KubosSat:
         try:
             if command.type in self.definitions:
                 if command.type == "command_definitions_update":
-                    self.command_builder.build()
+                    build_command_definitions.build(kubos_sat=self)
                     asyncio.ensure_future(gateway.update_command_definitions(
                         system=self.name,
                         definitions=self.definitions))
@@ -50,22 +49,22 @@ class KubosSat:
                         output=f"Updated Definitions from config file: {self.sat_config_path}"))
                 elif command.type in self.config:
                     """GraphQL Request Command"""
-                    self.graphql_command(
+                    graphql_commands.raw_graphql(
                         graphql=command.fields['graphql'],
                         ip=command.fields['ip'],
                         port=command.fields['port'],
                         command_id=command.id,
                         gateway=gateway)
                 elif command.type == "uplink_file":
-                    self.file_commands.uplink_file(gateway=gateway, command=command)
+                    file_commands.uplink_file(kubos_sat=self, gateway=gateway, command=command)
                 elif command.type == "downlink_file":
-                    self.file_commands.downlink_file(gateway=gateway, command=command)
+                    file_commands.downlink_file(kubos_sat=self, gateway=gateway, command=command)
                 elif command.type == "shell-command":
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
                         errors=[f"Command not yet implemented"]))
                 elif command.type == "update_file_list":
-                    self.file_commands.update_file_list(gateway=gateway, command=command)
+                    file_commands.update_file_list(kubos_sat=self, gateway=gateway, command=command)
                 else:
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
@@ -81,33 +80,4 @@ class KubosSat:
                     "Command Failed to Execute. Unknown Error Occurred.", f"Error: {traceback.format_exc()}"]))
 
     def build_command_definitions(self):
-        self.command_builder.build()
-
-    def graphql_command(self, graphql, ip, port, gateway, command_id):
-        """GraphQL Request Command"""
-        result = self.query(graphql=graphql, ip=ip, port=port)
-
-        if 'errors' in result:
-            logger.error(
-                f"GraphQL Command Failed: {result['errors']}")
-            asyncio.ensure_future(gateway.fail_command(
-                command_id=command_id,
-                errors=[f"GraphQL Request Failed: {result['errors']}"]))
-        else:
-            asyncio.ensure_future(gateway.complete_command(
-                command_id=command_id,
-                output=json.dumps(result)))
-
-    def query(self, graphql, ip, port):
-        """GraphQL Query"""
-        logger.debug(graphql)
-        url = f"http://{ip}:{port}/graphql"
-        request = requests.post(
-            url,
-            json={
-                'query': graphql
-            })
-
-        json_result = request.json()
-        logger.debug(json.dumps(json_result, indent=2))
-        return json_result
+        build_command_definitions.build(kubos_sat=self)
