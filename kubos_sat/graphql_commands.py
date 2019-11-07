@@ -5,6 +5,21 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 
+def build(kubos_sat, service):
+    kubos_sat.definitions[service] = {
+        "display_name": service,
+        "description": f"GraphQL Request to the {service}",
+        "tags": ["Raw GraphQL"],
+        "fields": [
+            {"name": "ip", "type": "string",
+                "value": kubos_sat.ip},
+            {"name": "port", "type": "string",
+                "value": kubos_sat.config[service]["addr"]["port"]},
+            {"name": "graphql", "type": "text", "default": "{ping}"}
+        ]
+    }
+
+
 def raw_graphql(graphql, ip, port, gateway, command_id):
     """GraphQL Request Command"""
     result = query(graphql=graphql, ip=ip, port=port)

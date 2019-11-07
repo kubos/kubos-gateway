@@ -9,7 +9,7 @@ import os
 import datetime
 import uuid
 from kubos_sat import file_commands
-from kubos_sat import build_command_definitions
+from kubos_sat import shell_commands
 from kubos_sat import graphql_commands
 
 logger = logging.getLogger(__name__)
@@ -59,12 +59,9 @@ class KubosSat:
                     file_commands.uplink_file(kubos_sat=self, gateway=gateway, command=command)
                 elif command.type == "downlink_file":
                     file_commands.downlink_file(kubos_sat=self, gateway=gateway, command=command)
-                elif command.type == "shell-command":
-                    asyncio.ensure_future(gateway.fail_command(
-                        command_id=command.id,
-                        errors=[f"Command not yet implemented"]))
                 elif command.type == "update_file_list":
-                    file_commands.update_file_list(kubos_sat=self, gateway=gateway, command=command)
+                    shell_commands.update_file_list(
+                        kubos_sat=self, gateway=gateway, command=command)
                 else:
                     asyncio.ensure_future(gateway.fail_command(
                         command_id=command.id,
@@ -80,4 +77,12 @@ class KubosSat:
                     "Command Failed to Execute. Unknown Error Occurred.", f"Error: {traceback.format_exc()}"]))
 
     def build_command_definitions(self):
-        build_command_definitions.build(kubos_sat=self)
+        """Builds Command Definitions"""
+        self.config = toml.load(self.sat_config_path)
+        for service in self.config:
+            if service == "file-transfer-service":
+                file_commands.build(kubos_sat=self, service=service)
+            elif service == "shell-service":
+                shell_commands.build(kubos_sat=self, service=service)
+            else:
+                graphql_commands.build(kubos_sat=self, service=service)
