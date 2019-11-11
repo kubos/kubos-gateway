@@ -38,34 +38,29 @@ class KubosSat:
 
     async def command_callback(self, command, gateway):
         try:
-            if command.type in self.definitions:
-                if command.type == "command_definitions_update":
-                    build_command_definitions.build(kubos_sat=self)
-                    asyncio.ensure_future(gateway.update_command_definitions(
-                        system=self.name,
-                        definitions=self.definitions))
-                    asyncio.ensure_future(gateway.complete_command(
-                        command_id=command.id,
-                        output=f"Updated Definitions from config file: {self.sat_config_path}"))
-                elif command.type in self.config:
-                    """GraphQL Request Command"""
-                    graphql_commands.raw_graphql(
-                        graphql=command.fields['graphql'],
-                        ip=command.fields['ip'],
-                        port=command.fields['port'],
-                        command_id=command.id,
-                        gateway=gateway)
-                elif command.type == "uplink_file":
-                    file_commands.uplink_file(kubos_sat=self, gateway=gateway, command=command)
-                elif command.type == "downlink_file":
-                    file_commands.downlink_file(kubos_sat=self, gateway=gateway, command=command)
-                elif command.type == "update_file_list":
-                    shell_commands.update_file_list(
-                        kubos_sat=self, gateway=gateway, command=command)
-                else:
-                    asyncio.ensure_future(gateway.fail_command(
-                        command_id=command.id,
-                        errors=[f"Command execution is not implemented: {command.type}"]))
+            if command.type == "command_definitions_update":
+                build_command_definitions.build(kubos_sat=self)
+                asyncio.ensure_future(gateway.update_command_definitions(
+                    system=self.name,
+                    definitions=self.definitions))
+                asyncio.ensure_future(gateway.complete_command(
+                    command_id=command.id,
+                    output=f"Updated Definitions from config file: {self.sat_config_path}"))
+            elif command.type in self.config:
+                """GraphQL Request Command"""
+                graphql_commands.raw_graphql(
+                    graphql=command.fields['graphql'],
+                    ip=command.fields['ip'],
+                    port=command.fields['port'],
+                    command_id=command.id,
+                    gateway=gateway)
+            elif command.type == "uplink_file":
+                file_commands.uplink_file(kubos_sat=self, gateway=gateway, command=command)
+            elif command.type == "downlink_file":
+                file_commands.downlink_file(kubos_sat=self, gateway=gateway, command=command)
+            elif command.type == "update_file_list":
+                shell_commands.update_file_list(
+                    kubos_sat=self, gateway=gateway, command=command)
             else:
                 asyncio.ensure_future(gateway.fail_command(
                     command_id=command.id,
