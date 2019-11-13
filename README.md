@@ -58,6 +58,8 @@ Here are the required config fields and their description:
     - You can also use the [example in the kubos repo](https://github.com/kubos/kubos/blob/master/tools/local_config.toml), located at: `$kubos-repo/tools/local_config.toml`
   - `file-list-directories`is an array of directories you want to retrieve the contents of for potential downlink or just viewing in Major Tom.
     - The directories in the `gateway_config.toml` are the ones we suggest will be most useful to retrieve from KubOS, feel free to add/remove as needed.
+  - `default-uplink-directory` is the default directory to uplink files to on the spacecraft using the uplink_file command.
+    - The directory in the `gateway_config.toml` is the one we suggest will be most useful for KubOS, feel free to change as needed.
 - `client-binaries`: Paths to the clients built in the previous section.
   - `file-client` local path on your machine to the built file client binary from the KubOS repository.
   - `shell-client` local path on your machine to the built shell client binary from the KubOS repository.
