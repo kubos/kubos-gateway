@@ -126,3 +126,26 @@ class KubosSat:
             if service == "app-service":
                 self.app_service = AppService(port=self.config["app-service"]["addr"]["port"])
                 self.app_service.build(kubos_sat=self)
+
+    async def listen_for_beacons(self, gateway, interface = '0.0.0.0', port = 8500):
+        name = self.name
+        loop = asyncio.get_running_loop()
+
+        class BeaconProtocol:
+            def connection_made(self, transport):
+                pass
+
+            def datagram_received(self, data, addr):
+                message = data.decode()
+                payload = json.loads(message)
+                logger.info('Received %r from %s' % (payload, addr))
+                asyncio.ensure_future(gateway.transmit_metrics([
+                    {
+                        "system": name,
+                        "subsystem": "OBC",
+                        "metric": "mem",
+                        "value": payload['mem']
+                    }
+                ]))
+
+        _transport, _protocol = await loop.create_datagram_endpoint(lambda: BeaconProtocol(), local_addr=(interface, port))
