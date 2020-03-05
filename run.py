@@ -82,7 +82,7 @@ asyncio.ensure_future(gateway.update_command_definitions(
     system=satellite.name,
     definitions=satellite.definitions))
 
-asyncio.ensure_future(satellite.listen_for_beacons(gateway, '0.0.0.0', 8500))
+asyncio.ensure_future(satellite.listen_for_beacons(gateway, 'OBC', '0.0.0.0', 8500))
 
 logger.debug("Starting Event Loop")
 loop.run_forever()
