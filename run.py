@@ -82,7 +82,22 @@ asyncio.ensure_future(gateway.update_command_definitions(
     system=satellite.name,
     definitions=satellite.definitions))
 
-asyncio.ensure_future(satellite.listen_for_beacons(gateway, 'OBC', '0.0.0.0', 8500))
+asyncio.ensure_future(satellite.listen_for_beacons(gateway,
+                                                   interface='0.0.0.0',
+                                                   port=8500,
+                                                   default_subsystem='OBC',
+                                                   subsystems={
+                                                       "mem": "OBC",
+                                                       "up": "OBC",
+                                                       "kubos_mtime": "disk",
+                                                       "app_mtime": "disk",
+                                                       "root_avail": "disk",
+                                                       "home_avail": "disk",
+                                                       "envar_avail": "disk",
+                                                       "la1": "OBC",
+                                                       "la5": "OBC",
+                                                       "la15": "OBC"
+                                                   }))
 
 logger.debug("Starting Event Loop")
 loop.run_forever()
