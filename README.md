@@ -56,6 +56,7 @@ Here are the required config fields and their description:
   - `config-path` is the *local* path to the KubOS config `toml` matching the KubOS system you are attempting to communicate with.
     - To retrieve from the spacecraft, it is typically located at: `/etc/kubos-config.toml`
     - You can also use the [example in the kubos repo](https://github.com/kubos/kubos/blob/master/tools/local_config.toml), located at: `$kubos-repo/tools/local_config.toml`
+    - *Note:* To get the KubOS File Transfer Service to work correctly, in the `[file-transfer-service]` section of the KubOS config on the spacecraft, set `downlink_ip` to the IP address of the system running the gateway.
   - `file-list-directories`is an array of directories you want to retrieve the contents of for potential downlink or just viewing in Major Tom.
     - The directories in the `gateway_config.toml` are the ones we suggest will be most useful to retrieve from KubOS, feel free to add/remove as needed.
   - `default-uplink-directory` is the default directory to uplink files to on the spacecraft using the uplink_file command.
